@@ -36,17 +36,19 @@ svg text{fill:var(--tx);font-size:11px}
 .bar{display:none}.tag:empty{display:none}
 table{width:100%;border-collapse:collapse;font-size:.88rem;margin:10px 0}th,td{padding:7px 8px;border-bottom:1px solid var(--bd);text-align:right}th:first-child,td:first-child{text-align:left}th{background:var(--lg);color:var(--dg)}tfoot td{font-weight:700;border-top:2px solid var(--g)}.wrap{overflow-x:auto}
 .lh{border-bottom:3px solid var(--g);padding-bottom:10px;margin-bottom:14px;display:flex;gap:12px;align-items:center}.lh h2{margin:0;color:var(--dg)}.lh small{color:#6b7f6e;display:block}
-@media print{:root:root:root{--card:#fff;--bg:#fff;--tx:#000;--bd:#ccc;--dg:#14532D;--lg:#E8F5E9}nav,.noprint,.msg{display:none!important}main{padding:0;max-width:none}.card{border:0;padding:0}}
+@media print{:root:root:root{--card:#fff;--bg:#fff;--tx:#000;--bd:#ccc;--dg:#14532D;--lg:#E8F5E9}nav,.noprint,.msg,.tb,#ov{display:none!important}main{padding:0;max-width:none}.card{border:0;padding:0}}
+.tb{display:none;position:sticky;top:0;z-index:20;background:var(--bg);padding:6px 0 10px;align-items:center;gap:12px}#ov{display:none}
 @media(max-width:720px){
-nav{position:fixed;bottom:0;left:0;right:0;top:auto;width:100%;height:auto;flex-direction:row;border:0;border-top:1px solid var(--bd);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));z-index:5}
-nav .logo{display:none}nav button{flex:1;flex-direction:column;align-items:center;font-size:.75rem;gap:2px;padding:8px 4px}
-main{padding:16px 14px 100px}.bar{display:block}}
+nav{position:fixed;top:0;left:0;bottom:0;right:auto;width:80%;max-width:300px;height:auto;flex-direction:column;border:0;border-right:1px solid var(--bd);padding:16px;padding-top:calc(16px + env(safe-area-inset-top,0px));transform:translateX(-105%);transition:transform .25s;z-index:40;overflow-y:auto}
+nav.open{transform:none;box-shadow:0 0 40px rgba(0,0,0,.3)}
+#ov.open{display:block;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:35}
+.tb{display:flex}main{padding:12px 14px 40px}.bar{display:block}}
 #splash{position:fixed;inset:0;background:#fff;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;transition:opacity .35s}#splash img{width:200px;max-width:60%}#splash .pb{width:220px;max-width:70%;height:10px;background:#E8F5E9;border-radius:99px;overflow:hidden}#splash .pb i{display:block;height:100%;width:0;background:#228B22;border-radius:99px;transition:width .25s}#splash b{color:#14532D;font:600 .95rem system-ui,sans-serif}
 </style></head><body>
 <div id="splash"><img src="logo.png" alt=""><div class="pb"><i id="spb"></i></div><b id="spt">0%</b></div>
 <script>var spl=function(p){var b=document.getElementById("spb"),t=document.getElementById("spt");if(b)b.style.width=p+"%";if(t)t.textContent=p+"%"};spl(10);</script>
 <div class="app">
-<nav id="nav"></nav>
+<div id="ov" onclick="menu(0)"></div><nav id="nav"></nav>
 <main id="main"></main>
 </div>
 <script src="config.js"></script>
@@ -62,7 +64,7 @@ async function hashPw(pw,salt){const k=await crypto.subtle.importKey("raw",new T
 function loadUser(u){U=u;S={cows:[],milk:{},audit:[]};try{const d=localStorage.getItem("gpd_"+u.id);if(d)S=JSON.parse(d)}catch(e){}S.rec=S.rec||{};S.farm=S.farm||{name:u.farm,addr:"",phone:"",email:""};localStorage.setItem("gpd_cur",u.id)}
 function logout(){U=null;localStorage.removeItem("gpd_cur");localStorage.removeItem("gpd_tk");TK=null;msg=null;view="dash";render()}
 const aerr=t=>{document.getElementById("am").innerHTML=`<div class="msg err">${esc(t)}</div>`};
-function authView(){document.getElementById("nav").innerHTML="";if(authMode==="restore")return restoreView();if(CLOUD)return cloudAuth();const reg=authMode==="reg",f=(id,l,t)=>`<div style="margin-bottom:12px"><label>${l}</label><input id="${id}" type="${t||"text"}" autocomplete="${t==="password"?(reg?"new-password":"current-password"):"off"}"></div>`;
+function authView(){document.getElementById("nav").innerHTML="";if(authMode==="restore")return restoreView();if(CLOUD&&authMode==="admin")return admLogin();if(CLOUD)return cloudAuth();const reg=authMode==="reg",f=(id,l,t)=>`<div style="margin-bottom:12px"><label>${l}</label><input id="${id}" type="${t||"text"}" autocomplete="${t==="password"?(reg?"new-password":"current-password"):"off"}"></div>`;
 document.getElementById("main").innerHTML=`<div style="max-width:380px;margin:6vh auto"><div style="text-align:center;margin-bottom:16px">${logoBig}<h1>Shamba Bora</h1><p class="sub">${reg?"Create your farm account":"Log in to your farm"}</p></div><div id="am"></div>${bioBtns()}<div class="card">${reg?f("rf","Farm name")+f("rn","Your name")+f("re","Email for backups (optional)","email"):""}${f("ru","Username")}${f("rp",reg?"Password (6+ characters)":"Password","password")}<button class="btn" style="width:100%" onclick="${reg?"doReg()":"doLogin()"}">${reg?"Create account":"Log in"}</button></div><p style="text-align:center"><a href="#" onclick="authMode='${reg?"login":"reg"}';render();return false" style="color:var(--g);font-weight:600">${reg?"I already have an account":"Create a new account"}</a></p><p style="text-align:center"><a href="#" onclick="authMode='restore';render();return false" style="color:var(--g);font-weight:600">Restore from backup file</a></p><p class="note">Works offline. Accounts are kept on this phone until cloud sync is connected.</p></div>`}
 async function aesKey(pw,salt,use){const k=await crypto.subtle.importKey("raw",new TextEncoder().encode(pw),"PBKDF2",false,["deriveKey"]);return crypto.subtle.deriveKey({name:"PBKDF2",hash:"SHA-256",salt,iterations:150000},k,{name:"AES-GCM",length:256},false,use)}
 async function makeBackup(pw){const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12)),key=await aesKey(pw,salt,["encrypt"]);
@@ -117,7 +119,7 @@ function cloudAuth(){const reg=authMode==="reg",f=(id,l,t)=>`<div style="margin-
 const body=pendMsg?`<div class="card"><p><b>${esc(pendMsg)}</b></p></div>`:`<div class="card">${reg?f("rn","Your name")+`<div style="margin-bottom:12px"><label>I am</label><select id="rk" onchange="rkChange()"><option value="owner">A farm owner (new farm)</option><option value="worker">A worker joining a farm</option></select></div><div id="rkb" style="margin-bottom:12px"><label>Farm name</label><input id="rf"></div>`:""}${f("re","Email","email")}${f("rp","Password"+(reg?" (6+ characters)":""),"password")}<button class="btn" style="width:100%" onclick="${reg?"cloudReg()":"cloudLogin()"}">${reg?"Create account":"Log in"}</button></div>`;
 const lk=(a,t)=>`<p style="text-align:center"><a href="#" onclick="${a};render();return false" style="color:var(--g);font-weight:600">${t}</a></p>`;
 document.getElementById("nav").innerHTML="";
-document.getElementById("main").innerHTML=`<div style="max-width:380px;margin:6vh auto"><div style="text-align:center;margin-bottom:16px">${logoBig}<h1>Shamba Bora</h1><p class="sub">${reg?"Create your account. An administrator must approve it before you can use it.":"Log in to your farm"}</p></div><div id="am"></div>${pendMsg?"":bioBtns()}${body}${pendMsg?lk("pendMsg=null;authMode='login'","Back to login"):lk("authMode='"+(reg?"login":"reg")+"'",reg?"I already have an account":"Create a new account")+lk("authMode='restore'","Restore from backup file")}<p class="note">After your first login on a phone, the app also works offline.</p></div>`}
+document.getElementById("main").innerHTML=`<div style="max-width:380px;margin:6vh auto"><div style="text-align:center;margin-bottom:16px">${logoBig}<h1>Shamba Bora</h1><p class="sub">${reg?"Create your account. An administrator must approve it before you can use it.":"Log in to your farm"}</p></div><div id="am"></div>${pendMsg?"":bioBtns()}${body}${pendMsg?lk("pendMsg=null;authMode='login'","Back to login"):lk("authMode='"+(reg?"login":"reg")+"'",reg?"I already have an account":"Create a new account")+lk("authMode='restore'","Restore from backup file")+lk("authMode='admin'","Administrator login")}<p class="note">After your first login on a phone, the app also works offline.</p></div>`}
 function rkChange(){document.getElementById("rkb").innerHTML=document.getElementById("rk").value==="owner"?'<label>Farm name</label><input id="rf">':'<label>Farm code</label><input id="rf" placeholder="e.g. GRE-4K7Q" style="text-transform:uppercase">'}
 async function runIntent(email){const t=localStorage.getItem("gpd_intent");if(!t)return;const i=JSON.parse(t);if(i.email!==email)return;localStorage.removeItem("gpd_intent");await rpc("dairy_register",{p_name:i.name,p_farm:i.farm||null,p_code:i.code||null})}
 const redirQ=()=>{if(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform())return"";return"?redirect_to="+encodeURIComponent(CFG.site||location.origin+location.pathname.replace(/[^\/]*$/,""))};
@@ -196,6 +198,16 @@ const admin=()=>adminPanel();
 function adminView(){document.getElementById("nav").innerHTML="";document.getElementById("main").innerHTML=`<div style="max-width:720px;margin:3vh auto">${logoBig}${msg?`<div class="msg ${msg.e?"err":""}">${esc(msg.t)}</div>`:""}${adminPanel()}<p style="text-align:center"><button class="btn alt" onclick="admOut()">Log out</button></p></div>`}
 function admOut(){admOn=false;msg=null;localStorage.removeItem("gpd_tk");TK=null;authMode="login";render()}
 function logoutAsk(){if(confirm("Log out of Shamba Bora? You can log back in with your password."))logout()}
+function menu(o){const n=document.getElementById("nav"),v=document.getElementById("ov");if(n)n.classList.toggle("open",!!o);if(v)v.classList.toggle("open",!!o)}
+function tbHtml(){const T={dash:"Home",milk:"Record milk",cows:"Cows",rec:"Records",reports:"Reports",settings:"Farm",admin:"Administrator"};return `<div class="tb"><button class="btn alt" style="padding:8px 14px;font-size:1.3rem;line-height:1" onclick="menu(1)" aria-label="Menu">☰</button><b style="color:var(--dg);font-size:1.15rem">${T[view]||"Shamba Bora"}</b></div>`}
+function admLogin(){document.getElementById("nav").innerHTML="";document.getElementById("main").innerHTML=`<div style="max-width:380px;margin:6vh auto"><div style="text-align:center;margin-bottom:16px">${logoBig}<h1>Administrator login</h1><p class="sub">For the Shamba Bora administrator only</p></div><div id="am"></div><div class="card"><div style="margin-bottom:12px"><label>Email</label><input id="re" type="email" autocomplete="off"></div><div style="margin-bottom:12px"><label>Password</label><input id="rp" type="password" autocomplete="off"></div><button class="btn" style="width:100%" onclick="cloudAdmin()">Log in as administrator</button></div><p style="text-align:center"><a href="#" onclick="authMode='login';render();return false" style="color:var(--g);font-weight:600">Back to normal login</a></p></div>`}
+async function cloudAdmin(){const email=document.getElementById("re").value.trim().toLowerCase(),p=document.getElementById("rp").value;
+if(!email||!p)return aerr("Enter your email and password.");
+if(!navigator.onLine)return aerr("The administrator screen needs internet.");
+try{saveTk(await api("/auth/v1/token?grant_type=password",{m:"POST",b:{email,password:p},anon:1}));const me=await rpc("dairy_me");
+if(!me.is_admin||me.status!=="approved"){TK=null;localStorage.removeItem("gpd_tk");return aerr("This account is not an administrator.")}
+admOn=true;authMode="login";await admLoad()}
+catch(e){aerr(netErr(e)?"No connection. Try again with internet.":/invalid|credentials/i.test(e.message)?"Wrong email or password.":e.message)}}
 async function doReg(){const g=i=>(document.getElementById(i)||{value:""}).value.trim(),p=document.getElementById("rp").value,un=g("ru").toLowerCase();
 if(!g("rf")||!g("rn")||!un||p.length<6)return aerr("Fill in every field. The password needs 6 or more characters.");
 if(g("re")&&!/^\S+@\S+\.\S+$/.test(g("re")))return aerr("That email address does not look right.");
@@ -217,10 +229,10 @@ const sum=a=>a.reduce((x,r)=>x+r.litres,0);
 const fmt=n=>(Math.round(n*10)/10).toFixed(1);
 const logo=`<img src="logo.png" alt="Shamba Bora" style="height:56px;width:auto;background:#fff;border-radius:10px">`,logoBig=`<img src="logo.png" alt="Shamba Bora" style="display:block;margin:0 auto 8px;width:170px;max-width:60%;background:#fff;border-radius:14px">`;
 function nav(){const t=[["dash","🏠","Home"],["milk","🥛","Milk"],["cows","🐄","Cows"],["rec","🩺","Records"],["reports","📄","Reports"],["settings","⚙️","Farm"],...(U&&U.admin?[["admin","🛡️","Admin"]]:[])];
-document.getElementById("nav").innerHTML=`<div class="logo"><img src="logo.png" alt="Shamba Bora" style="width:150px;max-width:100%;background:#fff;border-radius:12px"></div>`+t.map(x=>`<button class="${view===x[0]?"on":""}" onclick="go('${x[0]}')"><span>${x[1]}</span>${x[2]}</button>`).join("")}
-function go(v){view=v;msg=null;if(v==="cows")pid=null;render();if(v==="admin")admLoad()}
+document.getElementById("nav").innerHTML=`<div class="logo"><img src="logo.png" alt="Shamba Bora" style="width:150px;max-width:100%;background:#fff;border-radius:12px"></div>`+t.map(x=>`<button class="${view===x[0]?"on":""}" onclick="go('${x[0]}')"><span>${x[1]}</span>${x[2]}</button>`).join("")+`<button style="margin-top:auto" onclick="menu(0);logoutAsk()"><span>🚪</span>Log out</button>`}
+function go(v){menu(0);view=v;msg=null;if(v==="cows")pid=null;render();if(v==="admin")admLoad()}
 function render(){if(!U)return admOn?adminView():authView();nav();const m=document.getElementById("main");
-let h=bannerHtml();
+let h=tbHtml()+bannerHtml();
 if(msg)h+=`<div class="msg ${msg.e?"err":""}">${esc(msg.t)}</div>`;
 m.innerHTML=h+({dash,milk,cows,rec,reports,settings,admin}[view])();}
 function dash(){const d=today(),ses=s=>sum(recs(r=>r.date===d&&r.session===s));
