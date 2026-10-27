@@ -141,10 +141,11 @@ async function enter(me,email,p){const ms=me.memberships||[],m=ms.find(x=>x.stat
 if(me.status==="none")return stop("Registration is incomplete. Choose Create a new account, enter the same email, and finish the form.");
 if(me.status==="rejected")return stop("Your account was not approved. Please contact the administrator.");
 if(me.status!=="approved")return stop("Your account is waiting for the administrator to approve it. Try logging in again later.");
+if(me.is_admin&&!ms.some(x=>x.status==="active")){admOn=true;pendMsg=null;await admLoad();return}
 if(!m)return stop("Your account is approved but is not linked to a farm yet. Contact the farm owner.");
 if(m.status!=="active")return stop("Waiting for the farm owner to approve you on farm "+m.code+".");
 const us=users(),old=us.find(x=>x.id===me.uid),salt=old?old.salt:b64(crypto.getRandomValues(new Uint8Array(16))),hash=await hashPw(p,salt);
-const u={...(old||{}),id:me.uid,user:email,email,name:me.name,farm:m.name,salt,hash,sb:1,farmId:m.farm_id,code:m.code,role:m.role,fin:m.role==="owner"||!!m.can_finance};
+const u={...(old||{}),id:me.uid,user:email,email,name:me.name,farm:m.name,salt,hash,sb:1,farmId:m.farm_id,code:m.code,role:m.role,fin:m.role==="owner"||!!m.can_finance,admin:!!me.is_admin};
 localStorage.setItem("gpd_users",JSON.stringify([...us.filter(x=>x.id!==u.id),u]));pendMsg=null;loadUser(u);render();sync()}
 function forceOut(t){U=null;localStorage.removeItem("gpd_cur");localStorage.removeItem("gpd_tk");TK=null;view="dash";msg={t,e:1};render()}
 const sj=v=>Array.isArray(v)?"["+v.map(sj).join(",")+"]":v&&typeof v==="object"?"{"+Object.keys(v).sort().filter(k=>v[k]!==undefined).map(k=>JSON.stringify(k)+":"+sj(v[k])).join(",")+"}":JSON.stringify(v);
@@ -183,6 +184,14 @@ function teamCard(){if(!U.sb)return"";return `<div class="card" style="margin-to
 async function loadTeam(){const el=document.getElementById("team");try{await ensureTk();const l=await rpc("dairy_team",{p_farm:U.farmId});
 el.innerHTML=l.map(x=>`<div class="cow"><div class="n"><b>${esc(x.name||x.email)}</b><br><small>${esc(x.email)} · ${x.role} · ${x.status}${x.can_finance?" · can see money":""}${x.account!=="approved"?" · account "+x.account:""}</small></div>${x.role==="owner"?"":`<div>${x.status!=="active"?`<button class="btn" style="padding:8px 12px" onclick="setMember('${x.user_id}','active',false)">Approve</button>`:`<button class="btn alt" style="padding:8px 12px" onclick="setMember('${x.user_id}','active',${!x.can_finance})">${x.can_finance?"Hide money":"Show money"}</button>`} <button class="btn alt" style="padding:8px 12px" onclick="setMember('${x.user_id}','removed',false)">Remove</button></div>`}</div>`).join("")||'<p class="note">No team members yet.</p>'}catch(e){el.innerHTML=`<div class="msg err">${esc(e.message)}</div>`}}
 async function setMember(u,st,fin){try{await rpc("dairy_member_set",{p_farm:U.farmId,p_user:u,p_status:st,p_fin:fin});loadTeam()}catch(e){alert(e.message)}}
+let admList=[],admF="pending",admOn=false;
+async function admLoad(){try{await ensureTk();admList=await rpc("dairy_admin_list")}catch(e){msg={t:netErr(e)?"No internet. The administrator screen needs a connection.":e.message,e:1}}render()}
+async function admSet(id,s){try{await rpc("dairy_admin_set",{p_user:id,p_status:s});admLoad()}catch(e){alert(e.message)}}
+function adminPanel(){const a=admList.filter(x=>admF==="all"||x.status===admF);
+return `<h1>Administrator</h1><p class="sub">Approve or reject new accounts</p><div class="row"><select onchange="admF=this.value;render()">${["pending","approved","rejected","all"].map(s=>`<option ${s===admF?"selected":""}>${s}</option>`).join("")}</select><button class="btn alt" onclick="admLoad()">Refresh</button></div>${a.map(x=>`<div class="card" style="margin-bottom:10px"><b>${esc(x.name)}</b> <span class="tag ${x.status==="pending"?"miss":""}">${x.status}</span><br>${esc(x.email)}<br><small>${x.farms.map(f=>esc(f.name)+" ("+esc(f.code)+") · "+f.role+" · "+f.mstatus).join("<br>")}</small><div style="margin-top:8px">${x.status!=="approved"?`<button class="btn" style="padding:8px 14px" onclick="admSet('${x.id}','approved')">Approve</button> `:""}${x.status!=="rejected"?`<button class="btn alt" style="padding:8px 14px" onclick="admSet('${x.id}','rejected')">Reject</button>`:""}</div></div>`).join("")||'<p class="note">Nothing here.</p>'}`}
+const admin=()=>adminPanel();
+function adminView(){document.getElementById("nav").innerHTML="";document.getElementById("main").innerHTML=`<div style="max-width:720px;margin:3vh auto">${logoBig}${msg?`<div class="msg ${msg.e?"err":""}">${esc(msg.t)}</div>`:""}${adminPanel()}<p style="text-align:center"><button class="btn alt" onclick="admOut()">Log out</button></p></div>`}
+function admOut(){admOn=false;msg=null;localStorage.removeItem("gpd_tk");TK=null;authMode="login";render()}
 async function doReg(){const g=i=>(document.getElementById(i)||{value:""}).value.trim(),p=document.getElementById("rp").value,un=g("ru").toLowerCase();
 if(!g("rf")||!g("rn")||!un||p.length<6)return aerr("Fill in every field. The password needs 6 or more characters.");
 if(g("re")&&!/^\S+@\S+\.\S+$/.test(g("re")))return aerr("That email address does not look right.");
@@ -203,13 +212,13 @@ const recs=(f)=>Object.values(S.milk).filter(f);
 const sum=a=>a.reduce((x,r)=>x+r.litres,0);
 const fmt=n=>(Math.round(n*10)/10).toFixed(1);
 const logo=`<img src="logo.png" alt="Shamba Bora" style="height:56px;width:auto;background:#fff;border-radius:10px">`,logoBig=`<img src="logo.png" alt="Shamba Bora" style="display:block;margin:0 auto 8px;width:170px;max-width:60%;background:#fff;border-radius:14px">`;
-function nav(){const t=[["dash","🏠","Home"],["milk","🥛","Milk"],["cows","🐄","Cows"],["rec","🩺","Records"],["reports","📄","Reports"],["settings","⚙️","Farm"]];
+function nav(){const t=[["dash","🏠","Home"],["milk","🥛","Milk"],["cows","🐄","Cows"],["rec","🩺","Records"],["reports","📄","Reports"],["settings","⚙️","Farm"],...(U&&U.admin?[["admin","🛡️","Admin"]]:[])];
 document.getElementById("nav").innerHTML=`<div class="logo"><img src="logo.png" alt="Shamba Bora" style="width:150px;max-width:100%;background:#fff;border-radius:12px"></div>`+t.map(x=>`<button class="${view===x[0]?"on":""}" onclick="go('${x[0]}')"><span>${x[1]}</span>${x[2]}</button>`).join("")}
-function go(v){view=v;msg=null;if(v==="cows")pid=null;render()}
-function render(){if(!U)return authView();nav();const m=document.getElementById("main");
+function go(v){view=v;msg=null;if(v==="cows")pid=null;render();if(v==="admin")admLoad()}
+function render(){if(!U)return admOn?adminView():authView();nav();const m=document.getElementById("main");
 let h=bannerHtml();
 if(msg)h+=`<div class="msg ${msg.e?"err":""}">${esc(msg.t)}</div>`;
-m.innerHTML=h+({dash,milk,cows,rec,reports,settings}[view])();}
+m.innerHTML=h+({dash,milk,cows,rec,reports,settings,admin}[view])();}
 function dash(){const d=today(),ses=s=>sum(recs(r=>r.date===d&&r.session===s));
 const tot=sum(recs(r=>r.date===d));
 let days=[];for(let i=6;i>=0;i--){const x=new Date();x.setDate(x.getDate()-i);days.push(x.toISOString().slice(0,10))}
