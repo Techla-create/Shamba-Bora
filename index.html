@@ -41,14 +41,17 @@ table{width:100%;border-collapse:collapse;font-size:.88rem;margin:10px 0}th,td{p
 nav{position:fixed;bottom:0;left:0;right:0;top:auto;width:100%;height:auto;flex-direction:row;border:0;border-top:1px solid var(--bd);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));z-index:5}
 nav .logo{display:none}nav button{flex:1;flex-direction:column;align-items:center;font-size:.75rem;gap:2px;padding:8px 4px}
 main{padding:16px 14px 100px}.bar{display:block}}
+#splash{position:fixed;inset:0;background:#fff;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;transition:opacity .35s}#splash img{width:200px;max-width:60%}#splash .pb{width:220px;max-width:70%;height:10px;background:#E8F5E9;border-radius:99px;overflow:hidden}#splash .pb i{display:block;height:100%;width:0;background:#228B22;border-radius:99px;transition:width .25s}#splash b{color:#14532D;font:600 .95rem system-ui,sans-serif}
 </style></head><body>
+<div id="splash"><img src="logo.png" alt=""><div class="pb"><i id="spb"></i></div><b id="spt">0%</b></div>
+<script>var spl=function(p){var b=document.getElementById("spb"),t=document.getElementById("spt");if(b)b.style.width=p+"%";if(t)t.textContent=p+"%"};spl(10);</script>
 <div class="app">
 <nav id="nav"></nav>
 <main id="main"></main>
 </div>
 <script src="config.js"></script>
 <script>
-const SESS=["Morning","Afternoon","Evening"];
+spl(35);const SESS=["Morning","Afternoon","Evening"];
 const today=()=>new Date().toISOString().slice(0,10);
 let S={cows:[],milk:{},audit:[]},view="dash",msg=null,mDate=today(),mSess="Morning",online=navigator.onLine;
 let U=null,authMode="login";
@@ -339,7 +342,9 @@ return `<div class="noprint"><h1>Reports</h1><p class="sub">Choose a cow or the 
 ${cowT}<h3>${cow?"Milk by day":"Farm milk by day"}</h3>${dayT}
 ${extra(cow,inD)}<p class="note">Based on entered records only. A dash (–) means nothing was recorded, not zero litres.</p></div>`}
 addEventListener("online",()=>{online=true;render();sync()});setTimeout(()=>{if(U&&U.sb)sync()},1500);addEventListener("offline",()=>{online=false;render()});
-{const c=localStorage.getItem("gpd_cur"),u=users().find(x=>x.id===c);if(u&&!u.bio)loadUser(u)}
-render();
+{const c=localStorage.getItem("gpd_cur"),u=users().find(x=>x.id===c);spl(60);if(u&&!u.bio)loadUser(u)}
+spl(80);render();spl(92);
+addEventListener("load",()=>{spl(100);setTimeout(()=>{var s=document.getElementById("splash");if(s){s.style.opacity=0;setTimeout(()=>s.remove(),400)}},250)});setTimeout(()=>{var s=document.getElementById("splash");if(s)s.remove()},7000);
+
 if("serviceWorker"in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 </script></body></html>
