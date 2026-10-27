@@ -156,7 +156,7 @@ const ds=(k,v)=>sj(k.startsWith("milk:")?{...v,status:undefined}:v);
 function kinds(){const o={};S.cows.forEach(c=>o["cow:"+c.id]=c);Object.values(S.milk).forEach(r=>o["milk:"+r.cow+"|"+r.date+"|"+r.session]=r);Object.keys(MODS).forEach(m=>(S.rec[m]||[]).forEach(r=>o[m+":"+r.id]=r));o["farm:main"]=S.farm;return o}
 function waiting(){const cur=kinds(),sy=S.sy||{};let n=0;for(const k in cur)if(sy[k]!==ds(k,cur[k]))n++;for(const k in sy)if(!(k in cur))n++;return n}
 function bannerHtml(){const pnd=U&&U.sb?waiting():Object.values(S.milk).filter(r=>r.status!=="Synced").length;
-return `<div id="bn" class="msg ${online&&!syncErr?"":"err"}">${online?"Online":"Offline"} · ${pnd} record${pnd==1?"":"s"} ${U&&U.sb?"waiting to send · "+(S.ls?"last synced "+new Date(S.ls).toLocaleTimeString():"not synced yet")+(syncing?" · syncing…":"")+(syncErr?" · sync problem: "+esc(syncErr):"")+` <button class="btn alt" style="padding:4px 10px;margin-left:6px" onclick="sync(true)">Sync now</button>`:"saved on this device only"}</div>`}
+return `<div id="bn" class="msg ${online&&!syncErr?"":"err"}">${online?"Online":"Offline"} · ${pnd} record${pnd==1?"":"s"} ${U&&U.sb?"waiting to send · "+(S.ls?"last synced "+new Date(S.ls).toLocaleTimeString():"not synced yet")+(syncing?" · syncing…":"")+(syncErr?" · sync problem: "+esc(syncErr):"")+` <button class="btn alt" style="padding:4px 10px;margin-left:6px" onclick="sync(true)">Sync now</button>`:"saved on this device only"} <button class="btn alt" style="padding:4px 10px;margin-left:6px" onclick="logoutAsk()">Log out</button></div>`}
 const updBanner=()=>{const e=document.getElementById("bn");if(e)e.outerHTML=bannerHtml()};
 const busy=()=>[...document.querySelectorAll("#main input,#main select")].some(i=>i.id&&((i.tagName==="INPUT"&&i.type!=="file"&&i.value)||i===document.activeElement));
 function applyDoc(d){const k=d.kind,id=d.id;
@@ -195,6 +195,7 @@ return `<h1>Administrator</h1><p class="sub">Approve or reject new accounts</p><
 const admin=()=>adminPanel();
 function adminView(){document.getElementById("nav").innerHTML="";document.getElementById("main").innerHTML=`<div style="max-width:720px;margin:3vh auto">${logoBig}${msg?`<div class="msg ${msg.e?"err":""}">${esc(msg.t)}</div>`:""}${adminPanel()}<p style="text-align:center"><button class="btn alt" onclick="admOut()">Log out</button></p></div>`}
 function admOut(){admOn=false;msg=null;localStorage.removeItem("gpd_tk");TK=null;authMode="login";render()}
+function logoutAsk(){if(confirm("Log out of Shamba Bora? You can log back in with your password."))logout()}
 async function doReg(){const g=i=>(document.getElementById(i)||{value:""}).value.trim(),p=document.getElementById("rp").value,un=g("ru").toLowerCase();
 if(!g("rf")||!g("rn")||!un||p.length<6)return aerr("Fill in every field. The password needs 6 or more characters.");
 if(g("re")&&!/^\S+@\S+\.\S+$/.test(g("re")))return aerr("That email address does not look right.");
