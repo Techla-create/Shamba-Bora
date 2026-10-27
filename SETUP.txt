@@ -1,0 +1,16 @@
+SET UP CLOUD ACCOUNTS, APPROVAL AND SYNC (all free)
+
+1. Supabase dashboard > SQL Editor > New query. Paste all of supabase-setup.sql and Run.
+   It only adds new dairy_ tables and functions. It touches nothing else.
+2. Supabase > Project Settings > API: copy the Project URL and the anon public key into config.js.
+   Never use the service_role key.
+3. Supabase > Authentication > URL Configuration: set Site URL to your app address (the GitHub link).
+   Email confirmation: if it is ON, new people must click the email link before logging in.
+   If other apps share this project, leave that setting as it is. The app works either way.
+4. Upload all files in this folder to your GitHub repository (replace the old ones).
+5. Create your own login: Supabase > Authentication > Users > Add user (email and password).
+   Then run make-admin.sql in the SQL Editor. That makes you the administrator.
+6. Open  your-address/admin.html  and log in. New registrations appear under "pending". Approve them.
+7. Farm owners register in the app as "A farm owner" and get a farm code such as GRE-4K7Q (Farm tab).
+   Workers register as "A worker joining a farm" with that code. The owner approves them in Farm > Show team.
+Both approvals are needed: the administrator approves the account, then the farm owner approves a worker on the farm.
