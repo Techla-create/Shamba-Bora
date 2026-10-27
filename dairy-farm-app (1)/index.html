@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Shamba Bora</title>
+<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#228B22"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{--g:#228B22;--dg:#14532D;--lg:#E8F5E9;--bg:#F7FAF7;--card:#fff;--tx:#1F2937;--bd:#DCE7DC;--warn:#b45309;--err:#b91c1c;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--lg:#16301b;--bg:#0f1a12;--card:#16231a;--tx:#e5efe6;--bd:#2a3d2e;--dg:#7bd88a;color-scheme:dark}}
+:root[data-theme="dark"]{--lg:#16301b;--bg:#0f1a12;--card:#16231a;--tx:#e5efe6;--bd:#2a3d2e;--dg:#7bd88a;color-scheme:dark}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--tx);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.app{display:flex;min-height:100vh}
+nav{background:var(--card);border-right:1px solid var(--bd);width:220px;padding:16px;display:flex;flex-direction:column;gap:6px;position:sticky;top:0;height:100vh}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--dg);margin-bottom:14px}
+nav button{all:unset;cursor:pointer;padding:12px 14px;border-radius:12px;font-weight:600;display:flex;gap:10px}
+nav button.on{background:var(--g);color:#fff}
+nav button:not(.on):hover{background:var(--lg)}
+main{flex:1;padding:20px;max-width:980px;margin:0 auto;width:100%}
+h1{color:var(--dg);font-size:1.5rem;margin:0 0 4px}.sub{color:#6b7f6e;margin:0 0 16px;font-size:.9rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:14px}
+.stat b{display:block;font-size:1.6rem;color:var(--g)}.stat span{font-size:.82rem;color:#6b7f6e}
+.btn{background:var(--g);color:#fff;border:0;border-radius:12px;padding:13px 18px;font-size:1rem;font-weight:700;cursor:pointer}
+.btn.alt{background:var(--lg);color:var(--dg)}
+input,select{font:inherit;padding:11px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);width:100%}
+label{font-size:.85rem;font-weight:600;display:block;margin-bottom:4px}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:12px}
+.cow{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--bd)}
+.cow:last-child{border:0}.cow .n{flex:1}.cow input{width:110px;text-align:right}
+.tag{font-size:.75rem;padding:3px 9px;border-radius:99px;background:var(--lg);color:var(--dg);font-weight:700}
+.tag.miss{background:#fef3c7;color:var(--warn)}
+.msg{padding:10px 14px;border-radius:10px;margin-bottom:12px;background:var(--lg);color:var(--dg);font-weight:600}
+.msg.err{background:#fee2e2;color:var(--err)}
+.note{font-size:.8rem;color:#6b7f6e;margin-top:14px}
+svg text{fill:var(--tx);font-size:11px}
+.bar{display:none}.tag:empty{display:none}
+table{width:100%;border-collapse:collapse;font-size:.88rem;margin:10px 0}th,td{padding:7px 8px;border-bottom:1px solid var(--bd);text-align:right}th:first-child,td:first-child{text-align:left}th{background:var(--lg);color:var(--dg)}tfoot td{font-weight:700;border-top:2px solid var(--g)}.wrap{overflow-x:auto}
+.lh{border-bottom:3px solid var(--g);padding-bottom:10px;margin-bottom:14px;display:flex;gap:12px;align-items:center}.lh h2{margin:0;color:var(--dg)}.lh small{color:#6b7f6e;display:block}
+@media print{:root:root:root{--card:#fff;--bg:#fff;--tx:#000;--bd:#ccc;--dg:#14532D;--lg:#E8F5E9}nav,.noprint,.msg{display:none!important}main{padding:0;max-width:none}.card{border:0;padding:0}}
+@media(max-width:720px){
+nav{position:fixed;bottom:0;left:0;right:0;top:auto;width:100%;height:auto;flex-direction:row;border:0;border-top:1px solid var(--bd);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));z-index:5}
+nav .logo{display:none}nav button{flex:1;flex-direction:column;align-items:center;font-size:.75rem;gap:2px;padding:8px 4px}
+main{padding:16px 14px 100px}.bar{display:block}}
+</style></head><body>
+<div class="app">
+<nav id="nav"></nav>
+<main id="main"></main>
+</div>
+<script src="config.js"></script>
+<script>
+const SESS=["Morning","Afternoon","Evening"];
+const today=()=>new Date().toISOString().slice(0,10);
+let S={cows:[],milk:{},audit:[]},view="dash",msg=null,mDate=today(),mSess="Morning",online=navigator.onLine;
+let U=null,authMode="login";
+const users=()=>{try{return JSON.parse(localStorage.getItem("gpd_users")||"[]")}catch(e){return[]}};
+const b64=b=>{const a=new Uint8Array(b);let t="";for(let i=0;i<a.length;i+=8192)t+=String.fromCharCode(...a.subarray(i,i+8192));return btoa(t)};
+const unb64=t=>Uint8Array.from(atob(t),c=>c.charCodeAt(0));
+async function hashPw(pw,salt){const k=await crypto.subtle.importKey("raw",new TextEncoder().encode(pw),"PBKDF2",false,["deriveBits"]);return b64(await crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt:Uint8Array.from(atob(salt),c=>c.charCodeAt(0)),iterations:150000},k,256))}
+function loadUser(u){U=u;S={cows:[],milk:{},audit:[]};try{const d=localStorage.getItem("gpd_"+u.id);if(d)S=JSON.parse(d)}catch(e){}S.rec=S.rec||{};S.farm=S.farm||{name:u.farm,addr:"",phone:"",email:""};localStorage.setItem("gpd_cur",u.id)}
+function logout(){U=null;localStorage.removeItem("gpd_cur");localStorage.removeItem("gpd_tk");TK=null;msg=null;view="dash";render()}
+const aerr=t=>{document.getElementById("am").innerHTML=`<div class="msg err">${esc(t)}</div>`};
+function authView(){document.getElementById("nav").innerHTML="";if(authMode==="restore")return restoreView();if(CLOUD)return cloudAuth();const reg=authMode==="reg",f=(id,l,t)=>`<div style="margin-bottom:12px"><label>${l}</label><input id="${id}" type="${t||"text"}" autocomplete="${t==="password"?(reg?"new-password":"current-password"):"off"}"></div>`;
+document.getElementById("main").innerHTML=`<div style="max-width:380px;margin:6vh auto"><div style="text-align:center;margin-bottom:16px">${logo}<h1>Shamba Bora</h1><p class="sub">${reg?"Create your farm account":"Log in to your farm"}</p></div><div id="am"></div>${bioBtns()}<div class="card">${reg?f("rf","Farm name")+f("rn","Your name")+f("re","Email for backups (optional)","email"):""}${f("ru","Username")}${f("rp",reg?"Password (6+ characters)":"Password","password")}<button class="btn" style="width:100%" onclick="${reg?"doReg()":"doLogin()"}">${reg?"Create account":"Log in"}</button></div><p style="text-align:center"><a href="#" onclick="authMode='${reg?"login":"reg"}';render();return false" style="color:var(--g);font-weight:600">${reg?"I already have an account":"Create a new account"}</a></p><p style="text-align:center"><a href="#" onclick="authMode='restore';render();return false" style="color:var(--g);font-weight:600">Restore from backup file</a></p><p class="note">Works offline. Accounts are kept on this phone until cloud sync is connected.</p></div>`}
+async function aesKey(pw,salt,use){const k=await crypto.subtle.importKey("raw",new TextEncoder().encode(pw),"PBKDF2",false,["deriveKey"]);return crypto.subtle.deriveKey({name:"PBKDF2",hash:"SHA-256",salt,iterations:150000},k,{name:"AES-GCM",length:256},false,use)}
+async function makeBackup(pw){const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12)),key=await aesKey(pw,salt,["encrypt"]);
+const ct=await crypto.subtle.encrypt({name:"AES-GCM",iv},key,new TextEncoder().encode(JSON.stringify({user:{...U,bio:undefined},data:S})));
+return JSON.stringify({app:"gpd",v:1,salt:b64(salt),iv:b64(iv),ct:b64(ct)})}
+async function doBackup(){const pw=document.getElementById("bp").value;if(U.email&&navigator.clipboard)navigator.clipboard.writeText(U.email).catch(()=>{});
+if(!pw||(await hashPw(pw,U.salt))!==U.hash){msg={t:"Wrong password.",e:1};return render()}
+const txt=await makeBackup(pw),name="dairy-backup-"+today()+".gpdbackup",file=new File([txt],name,{type:"application/octet-stream"});
+try{if(navigator.canShare&&navigator.canShare({files:[file]}))await navigator.share({files:[file],title:"Farm backup "+today()+(S.farm&&S.farm.name?" - "+S.farm.name:"")});else throw 0}
+catch(e){if(e&&e.name==="AbortError")return;const a=document.createElement("a");a.href=URL.createObjectURL(file);a.download=name;a.click()}
+S.lastBackup=new Date().toISOString();save();msg={t:U.email?"Backup file ready. Choose Gmail and send it to "+U.email+" (the address is copied, so just paste it in the To box).":"Backup file created. Add your email below so you know where to send it next time."};render()}
+function restoreView(){document.getElementById("main").innerHTML=`<div style="max-width:380px;margin:6vh auto"><div style="text-align:center;margin-bottom:16px">${logo}<h1>Restore account</h1><p class="sub">Choose your backup file and enter its password</p></div><div id="am"></div><div class="card"><div style="margin-bottom:12px"><label>Backup file</label><input id="rfile" type="file"></div><div style="margin-bottom:12px"><label>Password</label><input id="rp" type="password"></div><button class="btn" style="width:100%" onclick="doRestore()">Restore and log in</button></div><p style="text-align:center"><a href="#" onclick="authMode='login';render();return false" style="color:var(--g);font-weight:600">Back to login</a></p></div>`}
+async function doRestore(){const f=document.getElementById("rfile").files[0],pw=document.getElementById("rp").value;
+if(!f||!pw)return aerr("Choose the file and enter the password.");
+try{const j=JSON.parse(await f.text());if(j.app!=="gpd")throw 0;
+const key=await aesKey(pw,unb64(j.salt),["decrypt"]),p=JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(j.iv)},key,unb64(j.ct))));
+const us=users(),old=us.find(x=>x.id===p.user.id);
+if(us.some(x=>x.user===p.user.user&&x.id!==p.user.id))return aerr("Another account on this phone already uses that username.");
+if(old&&!confirm("This account is already on this phone. Replace it with the backup?"))return;
+const u={...p.user,bio:old?old.bio:undefined};
+localStorage.setItem("gpd_users",JSON.stringify([...us.filter(x=>x.id!==u.id),u]));localStorage.setItem("gpd_"+u.id,JSON.stringify(p.data));
+authMode="login";msg={t:"Account restored."};loadUser(u);render()}
+catch(e){aerr("Could not open the file. Check the password and that it is a farm backup file.")}}
+const saveUser=()=>localStorage.setItem("gpd_users",JSON.stringify(users().map(x=>x.id===U.id?U:x)));
+const bioBtns=()=>authMode==="login"?users().filter(u=>u.bio).map(u=>`<button class="btn" style="width:100%;margin-bottom:12px" onclick="bioLogin('${u.id}')">\ud83d\udc46 Unlock as ${esc(u.name)}</button>`).join(""):"";
+async function bioLogin(id){const u=users().find(x=>x.id===id);try{await navigator.credentials.get({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),allowCredentials:[{type:"public-key",id:unb64(u.bio)}],userVerification:"required",timeout:60000}});loadUser(u);render()}catch(e){aerr("Fingerprint or face was not confirmed. Use your password instead.")}}
+async function bioOn(){const pw=document.getElementById("bp").value;
+if(!pw||(await hashPw(pw,U.salt))!==U.hash){msg={t:"Wrong password.",e:1};return render()}
+try{const c=await navigator.credentials.create({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),rp:{name:"Shamba Bora",id:location.hostname},user:{id:new TextEncoder().encode(U.id),name:U.user,displayName:U.name},pubKeyCredParams:[{type:"public-key",alg:-7},{type:"public-key",alg:-257}],authenticatorSelection:{authenticatorAttachment:"platform",userVerification:"required"},timeout:60000}});
+U.bio=b64(c.rawId);saveUser();msg={t:"Fingerprint unlock is on. The app will ask for it each time it is opened."}}
+catch(e){msg={t:"Could not turn on fingerprint unlock. Check that a fingerprint or face is set up on this phone.",e:1}}render()}
+function bioOff(){delete U.bio;saveUser();msg={t:"Fingerprint unlock is off."};render()}
+function secCard(){const bio=!!U.bio;return `<div class="card" style="margin-top:16px"><h3 style="margin-top:0;color:var(--dg)">Backup and security</h3><div style="margin-bottom:12px"><label>Backup email (your Gmail)</label><input id="be" type="email" value="${esc(U.email||"")}" onchange="setEmail(this.value)"></div><div style="margin-bottom:12px"><label>Confirm your password</label><input id="bp" type="password" autocomplete="current-password"></div>
+<p class="note" style="margin:0 0 12px">${S.lastBackup?"Last backup: "+new Date(S.lastBackup).toLocaleString():"No backup made yet."} The file is locked with your password. If you forget the password, it cannot be opened.</p>
+<button class="btn" onclick="doBackup()">\ud83d\udcbe Save encrypted backup</button>
+<hr style="border:0;border-top:1px solid var(--bd);margin:16px 0">
+${window.PublicKeyCredential?`<p style="margin:0 0 10px">Fingerprint / face unlock: <b>${bio?"On":"Off"}</b></p><button class="btn alt" onclick="${bio?"bioOff()":"bioOn()"}">${bio?"Turn off":"Turn on fingerprint unlock"}</button><p class="note">When on, the app asks for your fingerprint or face each time it is opened. Your password still works as a fallback.</p>`:`<p class="note">This browser does not support fingerprint unlock.</p>`}</div>`}
+function bkNote(){const l=S.lastBackup,d=l?Math.floor((Date.now()-new Date(l))/864e5):null;if(l&&d<2)return"";return `<div class="msg" style="background:#fef3c7;color:var(--warn);cursor:pointer" onclick="go('settings')">${l?"Last backup was "+d+" days ago":"No backup yet"}. Tap here to back up${U.email?" to "+esc(U.email):""}.</div>`}
+function setEmail(v){v=v.trim();if(v&&!/^\S+@\S+\.\S+$/.test(v)){alert("That email address does not look right.");return}U.email=v;saveUser()}
+const needBk=()=>!S.lastBackup||S.lastBackup.slice(0,10)!==today();
+const CFG=window.CFG||{},CLOUD=!!(CFG.url&&CFG.key&&!/YOURPROJECT|YOUR_/.test(CFG.url+CFG.key));
+let TK=null,pendMsg=null,syncing=false,syncErr="";
+async function api(path,o){o=o||{};const h={apikey:CFG.key,"Content-Type":"application/json"};if(TK&&!o.anon)h.Authorization="Bearer "+TK.access_token;if(o.h)Object.assign(h,o.h);
+const r=await fetch(CFG.url+path,{method:o.m||"GET",headers:h,body:o.b?JSON.stringify(o.b):undefined}),t=await r.text();let j=null;try{j=t?JSON.parse(t):null}catch(e){}
+if(!r.ok)throw new Error((j&&(j.msg||j.message||j.error_description||j.error))||"Error "+r.status);return j}
+const rpc=(fn,b)=>api("/rest/v1/rpc/"+fn,{m:"POST",b:b||{}});
+const saveTk=j=>{TK={access_token:j.access_token,refresh_token:j.refresh_token,expires_at:j.expires_at||Math.floor(Date.now()/1000)+(j.expires_in||3600)};localStorage.setItem("gpd_tk",JSON.stringify(TK))};
+async function ensureTk(){if(!TK)try{TK=JSON.parse(localStorage.getItem("gpd_tk")||"null")}catch(e){}if(!TK)return false;if(TK.expires_at*1000>Date.now()+60000)return true;
+try{saveTk(await api("/auth/v1/token?grant_type=refresh_token",{m:"POST",b:{refresh_token:TK.refresh_token},anon:1}));return true}catch(e){return false}}
+const netErr=e=>e instanceof TypeError;
+function cloudAuth(){const reg=authMode==="reg",f=(id,l,t)=>`<div style="margin-bottom:12px"><label>${l}</label><input id="${id}" type="${t||"text"}" autocomplete="off"></div>`;
+const body=pendMsg?`<div class="card"><p><b>${esc(pendMsg)}</b></p></div>`:`<div class="card">${reg?f("rn","Your name")+`<div style="margin-bottom:12px"><label>I am</label><select id="rk" onchange="rkChange()"><option value="owner">A farm owner (new farm)</option><option value="worker">A worker joining a farm</option></select></div><div id="rkb" style="margin-bottom:12px"><label>Farm name</label><input id="rf"></div>`:""}${f("re","Email","email")}${f("rp","Password"+(reg?" (6+ characters)":""),"password")}<button class="btn" style="width:100%" onclick="${reg?"cloudReg()":"cloudLogin()"}">${reg?"Create account":"Log in"}</button></div>`;
+const lk=(a,t)=>`<p style="text-align:center"><a href="#" onclick="${a};render();return false" style="color:var(--g);font-weight:600">${t}</a></p>`;
+document.getElementById("nav").innerHTML="";
+document.getElementById("main").innerHTML=`<div style="max-width:380px;margin:6vh auto"><div style="text-align:center;margin-bottom:16px">${logo}<h1>Shamba Bora</h1><p class="sub">${reg?"Create your account. An administrator must approve it before you can use it.":"Log in to your farm"}</p></div><div id="am"></div>${pendMsg?"":bioBtns()}${body}${pendMsg?lk("pendMsg=null;authMode='login'","Back to login"):lk("authMode='"+(reg?"login":"reg")+"'",reg?"I already have an account":"Create a new account")+lk("authMode='restore'","Restore from backup file")}<p class="note">After your first login on a phone, the app also works offline.</p></div>`}
+function rkChange(){document.getElementById("rkb").innerHTML=document.getElementById("rk").value==="owner"?'<label>Farm name</label><input id="rf">':'<label>Farm code</label><input id="rf" placeholder="e.g. GRE-4K7Q" style="text-transform:uppercase">'}
+async function runIntent(email){const t=localStorage.getItem("gpd_intent");if(!t)return;const i=JSON.parse(t);if(i.email!==email)return;localStorage.removeItem("gpd_intent");await rpc("dairy_register",{p_name:i.name,p_farm:i.farm||null,p_code:i.code||null})}
+async function cloudReg(){const g=i=>(document.getElementById(i)||{value:""}).value.trim(),kind=g("rk"),email=g("re").toLowerCase(),p=document.getElementById("rp").value,nm=g("rn"),fv=g("rf");
+if(!nm||!email||!fv||p.length<6)return aerr("Fill in every field. The password needs 6 or more characters.");
+if(!/^\S+@\S+\.\S+$/.test(email))return aerr("That email address does not look right.");
+if(!navigator.onLine)return aerr("You need internet to create an account.");
+localStorage.setItem("gpd_intent",JSON.stringify({email,name:nm,farm:kind==="owner"?fv:"",code:kind==="worker"?fv.toUpperCase():""}));
+try{const j=await api("/auth/v1/signup",{m:"POST",b:{email,password:p},anon:1});
+if(j&&j.access_token){saveTk(j);await runIntent(email);const me=await rpc("dairy_me");return enter(me,email,p)}
+pendMsg="Account created. Check your email and confirm it, then log in here. After that an administrator must approve you.";render()}
+catch(e){aerr(netErr(e)?"No connection. Try again when you have internet.":/already/i.test(e.message)?"This email already has an account. Use Log in and your farm details will be added.":e.message)}}
+async function cloudLogin(){const email=document.getElementById("re").value.trim().toLowerCase(),p=document.getElementById("rp").value;
+if(!email||!p)return aerr("Enter your email and password.");
+if(!window.crypto||!crypto.subtle)return aerr("Secure login needs the HTTPS link of the app.");
+if(!navigator.onLine)return offlineLogin(email,p);
+try{saveTk(await api("/auth/v1/token?grant_type=password",{m:"POST",b:{email,password:p},anon:1}))}
+catch(e){return netErr(e)?offlineLogin(email,p):aerr(/invalid|credentials/i.test(e.message)?"Wrong email or password.":e.message)}
+try{await runIntent(email);enter(await rpc("dairy_me"),email,p)}catch(e){aerr(e.message)}}
+async function offlineLogin(email,p){const u=users().find(x=>x.user===email&&x.sb);
+if(!u)return aerr("No internet. Log in online once on this phone first.");
+if((await hashPw(p,u.salt))!==u.hash)return aerr("Wrong email or password.");loadUser(u);render()}
+async function enter(me,email,p){const ms=me.memberships||[],m=ms.find(x=>x.status==="active")||ms[0],stop=t=>{pendMsg=t;render()};
+if(me.status==="none")return stop("Registration is incomplete. Choose Create a new account, enter the same email, and finish the form.");
+if(me.status==="rejected")return stop("Your account was not approved. Please contact the administrator.");
+if(me.status!=="approved")return stop("Your account is waiting for the administrator to approve it. Try logging in again later.");
+if(!m)return stop("Your account is approved but is not linked to a farm yet. Contact the farm owner.");
+if(m.status!=="active")return stop("Waiting for the farm owner to approve you on farm "+m.code+".");
+const us=users(),old=us.find(x=>x.id===me.uid),salt=old?old.salt:b64(crypto.getRandomValues(new Uint8Array(16))),hash=await hashPw(p,salt);
+const u={...(old||{}),id:me.uid,user:email,email,name:me.name,farm:m.name,salt,hash,sb:1,farmId:m.farm_id,code:m.code,role:m.role,fin:m.role==="owner"||!!m.can_finance};
+localStorage.setItem("gpd_users",JSON.stringify([...us.filter(x=>x.id!==u.id),u]));pendMsg=null;loadUser(u);render();sync()}
+function forceOut(t){U=null;localStorage.removeItem("gpd_cur");localStorage.removeItem("gpd_tk");TK=null;view="dash";msg={t,e:1};render()}
+const sj=v=>Array.isArray(v)?"["+v.map(sj).join(",")+"]":v&&typeof v==="object"?"{"+Object.keys(v).sort().filter(k=>v[k]!==undefined).map(k=>JSON.stringify(k)+":"+sj(v[k])).join(",")+"}":JSON.stringify(v);
+const ds=(k,v)=>sj(k.startsWith("milk:")?{...v,status:undefined}:v);
+function kinds(){const o={};S.cows.forEach(c=>o["cow:"+c.id]=c);Object.values(S.milk).forEach(r=>o["milk:"+r.cow+"|"+r.date+"|"+r.session]=r);Object.keys(MODS).forEach(m=>(S.rec[m]||[]).forEach(r=>o[m+":"+r.id]=r));o["farm:main"]=S.farm;return o}
+function waiting(){const cur=kinds(),sy=S.sy||{};let n=0;for(const k in cur)if(sy[k]!==ds(k,cur[k]))n++;for(const k in sy)if(!(k in cur))n++;return n}
+function bannerHtml(){const pnd=U&&U.sb?waiting():Object.values(S.milk).filter(r=>r.status!=="Synced").length;
+return `<div id="bn" class="msg ${online&&!syncErr?"":"err"}">${online?"Online":"Offline"} · ${pnd} record${pnd==1?"":"s"} ${U&&U.sb?"waiting to send · "+(S.ls?"last synced "+new Date(S.ls).toLocaleTimeString():"not synced yet")+(syncing?" · syncing…":"")+(syncErr?" · sync problem: "+esc(syncErr):"")+` <button class="btn alt" style="padding:4px 10px;margin-left:6px" onclick="sync(true)">Sync now</button>`:"saved on this device only"}</div>`}
+const updBanner=()=>{const e=document.getElementById("bn");if(e)e.outerHTML=bannerHtml()};
+const busy=()=>[...document.querySelectorAll("#main input,#main select")].some(i=>i.id&&((i.tagName==="INPUT"&&i.type!=="file"&&i.value)||i===document.activeElement));
+function applyDoc(d){const k=d.kind,id=d.id;
+if(k==="cow"){const i=S.cows.findIndex(c=>c.id===id);if(d.deleted){if(i>=0)S.cows.splice(i,1)}else if(i>=0)S.cows[i]=d.data;else S.cows.push(d.data)}
+else if(k==="milk"){if(d.deleted)delete S.milk[id];else S.milk[id]={...d.data,status:"Synced"}}
+else if(k==="farm"){if(!d.deleted)S.farm=d.data}
+else if(MODS[k]){const a=S.rec[k]=S.rec[k]||[],i=a.findIndex(r=>r.id===id);if(d.deleted){if(i>=0)a.splice(i,1)}else if(i>=0)a[i]=d.data;else a.push(d.data)}}
+async function sync(manual){if(!U||!U.sb||syncing)return;
+if(!navigator.onLine){if(manual){msg={t:"No internet. Records will be sent when the phone is back online.",e:1};render()}return}
+syncing=true;syncErr="";updBanner();let changed=0;
+try{if(!(await ensureTk()))throw new Error("Please log out and log in again to sync.");
+const me=await rpc("dairy_me"),m=(me.memberships||[]).find(x=>x.farm_id===U.farmId);
+if(me.status!=="approved"||!m||m.status!=="active"){syncing=false;return forceOut("Your access was removed or is no longer approved.")}
+U.role=m.role;U.fin=m.role==="owner"||!!m.can_finance;saveUser();
+const cur=kinds(),sy=S.sy=S.sy||{},up=[];for(const k in cur){const s=ds(k,cur[k]);if(sy[k]!==s)up.push([k,s])}
+const del=Object.keys(sy).filter(k=>!(k in cur)),sp=k=>{const i=k.indexOf(":");return[k.slice(0,i),k.slice(i+1)]};
+const rows=[...up.map(([k,s])=>{const[a,b]=sp(k);return{farm_id:U.farmId,kind:a,id:b,data:JSON.parse(s),deleted:false}}),...del.map(k=>{const[a,b]=sp(k);return{farm_id:U.farmId,kind:a,id:b,data:{},deleted:true}})];
+for(let i=0;i<rows.length;i+=200)await api("/rest/v1/dairy_docs?on_conflict=farm_id,kind,id",{m:"POST",b:rows.slice(i,i+200),h:{Prefer:"resolution=merge-duplicates,return=minimal"}});
+up.forEach(([k,s])=>{sy[k]=s;if(k.startsWith("milk:")&&S.milk[k.slice(5)])S.milk[k.slice(5)].status="Synced"});del.forEach(k=>delete sy[k]);
+let since=S.lp||"1970-01-01T00:00:00Z";
+for(;;){const q=await api("/rest/v1/dairy_docs?farm_id=eq."+U.farmId+"&updated_at=gte."+encodeURIComponent(since)+"&order=updated_at.asc&limit=500&select=kind,id,data,deleted,updated_at");
+for(const d of q){const k=d.kind+":"+d.id,s=ds(k,d.data);if(d.deleted){if(sy[k]!==undefined)changed++;delete sy[k]}else{if(sy[k]!==s)changed++;sy[k]=s}applyDoc(d);since=d.updated_at}
+if(q.length<500)break}
+S.lp=since;S.ls=new Date().toISOString();save()}
+catch(e){syncErr=netErr(e)?"no connection":e.message}
+syncing=false;if(manual){msg=syncErr?{t:"Sync problem: "+syncErr,e:1}:{t:"Everything is up to date."};render()}else if(changed&&!busy())render();else updBanner()}
+function teamCard(){if(!U.sb)return"";return `<div class="card" style="margin-top:16px"><h3 style="margin-top:0;color:var(--dg)">Farm code and team</h3><p>Farm code: <b style="font-size:1.3rem;letter-spacing:2px">${esc(U.code)}</b><br><small>Give this code to your workers when they register.</small></p>${U.role==="owner"?`<button class="btn alt" onclick="loadTeam()">Show team</button><div id="team"></div>`:`<p class="note">Your role on this farm: worker.</p>`}</div>`}
+async function loadTeam(){const el=document.getElementById("team");try{await ensureTk();const l=await rpc("dairy_team",{p_farm:U.farmId});
+el.innerHTML=l.map(x=>`<div class="cow"><div class="n"><b>${esc(x.name||x.email)}</b><br><small>${esc(x.email)} · ${x.role} · ${x.status}${x.can_finance?" · can see money":""}${x.account!=="approved"?" · account "+x.account:""}</small></div>${x.role==="owner"?"":`<div>${x.status!=="active"?`<button class="btn" style="padding:8px 12px" onclick="setMember('${x.user_id}','active',false)">Approve</button>`:`<button class="btn alt" style="padding:8px 12px" onclick="setMember('${x.user_id}','active',${!x.can_finance})">${x.can_finance?"Hide money":"Show money"}</button>`} <button class="btn alt" style="padding:8px 12px" onclick="setMember('${x.user_id}','removed',false)">Remove</button></div>`}</div>`).join("")||'<p class="note">No team members yet.</p>'}catch(e){el.innerHTML=`<div class="msg err">${esc(e.message)}</div>`}}
+async function setMember(u,st,fin){try{await rpc("dairy_member_set",{p_farm:U.farmId,p_user:u,p_status:st,p_fin:fin});loadTeam()}catch(e){alert(e.message)}}
+async function doReg(){const g=i=>(document.getElementById(i)||{value:""}).value.trim(),p=document.getElementById("rp").value,un=g("ru").toLowerCase();
+if(!g("rf")||!g("rn")||!un||p.length<6)return aerr("Fill in every field. The password needs 6 or more characters.");
+if(g("re")&&!/^\S+@\S+\.\S+$/.test(g("re")))return aerr("That email address does not look right.");
+if(!(window.crypto&&crypto.subtle))return aerr("Secure login needs the HTTPS link of the hosted app.");
+if(users().some(x=>x.user===un))return aerr("That username is already used on this phone.");
+const salt=b64(crypto.getRandomValues(new Uint8Array(16))),u={id:uid(),user:un,name:g("rn"),farm:g("rf"),email:g("re"),salt,hash:await hashPw(p,salt)};
+localStorage.setItem("gpd_users",JSON.stringify([...users(),u]));msg=null;loadUser(u);render()}
+async function doLogin(){const un=document.getElementById("ru").value.trim().toLowerCase(),p=document.getElementById("rp").value,u=users().find(x=>x.user===un);
+if(!(window.crypto&&crypto.subtle))return aerr("Secure login needs the HTTPS link of the hosted app.");
+if(!u||(await hashPw(p,u.salt))!==u.hash)return aerr("Wrong username or password.");
+msg=null;loadUser(u);render()}
+S.farm=S.farm||{name:"",addr:"",phone:"",email:""};
+function save(){try{if(U)localStorage.setItem("gpd_"+U.id,JSON.stringify(S))}catch(e){msg={t:"Could not save on this device.",e:1}}if(U&&U.sb&&!syncing){clearTimeout(window._st);window._st=setTimeout(sync,4000)}}
+const uid=()=>crypto.randomUUID?crypto.randomUUID():Date.now()+""+Math.random();
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const producing=()=>S.cows.filter(c=>c.status==="Active");
+const recs=(f)=>Object.values(S.milk).filter(f);
+const sum=a=>a.reduce((x,r)=>x+r.litres,0);
+const fmt=n=>(Math.round(n*10)/10).toFixed(1);
+const logo=`<svg width="34" height="34" viewBox="0 0 34 34"><circle cx="17" cy="17" r="17" fill="#228B22"/><path d="M9 20c0-5 3-8 8-8s8 3 8 8-3 6-8 6-8-1-8-6z" fill="#fff"/><path d="M8 11l3 3M26 11l-3 3" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><path d="M17 4c4 0 6 3 6 5-4 0-6-2-6-5z" fill="#E8F5E9"/><circle cx="14" cy="19" r="1.2" fill="#14532D"/><circle cx="20" cy="19" r="1.2" fill="#14532D"/></svg>`;
+function nav(){const t=[["dash","🏠","Home"],["milk","🥛","Milk"],["cows","🐄","Cows"],["rec","🩺","Records"],["reports","📄","Reports"],["settings","⚙️","Farm"]];
+document.getElementById("nav").innerHTML=`<div class="logo">${logo}<span>Shamba<br>Bora</span></div>`+t.map(x=>`<button class="${view===x[0]?"on":""}" onclick="go('${x[0]}')"><span>${x[1]}</span>${x[2]}</button>`).join("")}
+function go(v){view=v;msg=null;if(v==="cows")pid=null;render()}
+function render(){if(!U)return authView();nav();const m=document.getElementById("main");
+let h=bannerHtml();
+if(msg)h+=`<div class="msg ${msg.e?"err":""}">${esc(msg.t)}</div>`;
+m.innerHTML=h+({dash,milk,cows,rec,reports,settings}[view])();}
+function dash(){const d=today(),ses=s=>sum(recs(r=>r.date===d&&r.session===s));
+const tot=sum(recs(r=>r.date===d));
+let days=[];for(let i=6;i>=0;i--){const x=new Date();x.setDate(x.getDate()-i);days.push(x.toISOString().slice(0,10))}
+const v=days.map(x=>sum(recs(r=>r.date===x))),mx=Math.max(1,...v);
+const ch=v.map((n,i)=>{const hh=n/mx*110;return `<rect x="${i*52+14}" y="${130-hh}" width="34" height="${hh}" rx="6" fill="#228B22"/><text x="${i*52+31}" y="146" text-anchor="middle">${days[i].slice(5)}</text><text x="${i*52+31}" y="${124-hh}" text-anchor="middle">${n?fmt(n):""}</text>`}).join("");
+const st=(n,l)=>`<div class="card stat"><b>${n}</b><span>${l}</span></div>`;
+const act=Object.values(S.milk).sort((a,b)=>b.at.localeCompare(a.at)).slice(0,5).map(r=>`<div class="cow"><span class="n">${esc(cowName(r.cow))} · ${r.session}</span><b>${fmt(r.litres)} L</b></div>`).join("")||`<p class="note">No milk recorded yet. Start with “Record milk”.</p>`;
+return `<h1>Dashboard</h1><p class="sub">${d}</p>${bkNote()}
+<button class="btn" onclick="go('milk')" style="width:100%;margin-bottom:16px;font-size:1.1rem">🥛 Record milk</button>
+<div class="grid">${st(S.cows.length,"Total cows")}${st(producing().length,"Producing")}${st(fmt(tot)+" L","Milk today")}${st(fmt(ses("Morning"))+" L","Morning")}${st(fmt(ses("Afternoon"))+" L","Afternoon")}${st(fmt(ses("Evening"))+" L","Evening")}</div>
+${remBox()}${U.sb&&!U.fin?"":fin()}<div class="card" style="margin-bottom:16px"><b>Daily milk, last 7 days (litres)</b><svg viewBox="0 0 370 155" width="100%">${ch}</svg></div>
+<div class="card"><b>Recent entries</b>${act}</div>`}
+function cowName(id){const c=S.cows.find(c=>c.id===id);return c?c.name+(c.tag?" ("+c.tag+")":""):"Unknown cow"}
+const MODS={
+health:{t:"Health",r:["cow","symptoms"],f:[["cow","Cow","cow"],["noticed","Date noticed","date"],["symptoms","Symptoms and observations","text"],["condition","Condition (if known)","text"],["vet","Vet name and contact","text"],["treatment","Treatment given","text"],["med","Medication and dose","text"],["start","Treatment start","date"],["end","Treatment end","date"],["cost","Cost","number"],["follow","Follow-up date","date"],["milkwd","Milk withdrawal ends","date"],["meatwd","Meat withdrawal ends","date"],["status","Recovery",["Under treatment","Recovered","Ongoing"]]]},
+vacc:{t:"Vaccines",r:["cow","name","date"],f:[["cow","Cow","cow"],["name","Vaccine or care","text"],["date","Date given","date"],["due","Next due","date"],["cost","Cost","number"],["notes","Notes","text"]]},
+breed:{t:"Breeding",r:["cow","date"],f:[["cow","Cow","cow"],["type","Event",["Heat seen","Insemination / mating","Pregnancy check","Calving"]],["date","Date","date"],["bull","Bull or semen","text"],["result","Pregnancy result",["","Pregnant","Not pregnant"]],["expected","Expected calving","date"],["check","Next check","date"],["calf","Calf name / tag and sex","text"],["notes","Complications and notes","text"]]},
+feed:{t:"Feeding",r:["date","type"],f:[["date","Date","date"],["type","Feed type","text"],["qty","Quantity (kg)","number"],["cow","Cow or group","cow0"],["cost","Cost","number"],["notes","Notes","text"]]},
+exp:{t:"Expenses",r:["amount"],f:[["date","Date","date"],["cat","Category",["Animal purchase","Feed","Medication and vet","Labour","Transport","Equipment","Other"]],["amount","Amount","number"],["notes","Description","text"]]},
+sale:{t:"Sales",r:["litres","price"],f:[["date","Date","date"],["litres","Litres sold","number"],["price","Price per litre","number"],["buyer","Buyer","text"],["paid","Amount paid","number"],["notes","Notes","text"]]}};
+let mod="health",cq="",cf="All",pid=null;
+const nmOf=id=>(S.cows.find(c=>c.id===id)||{name:"All cows"}).name;
+function line(m,r){const M=MODS[m];let h=M.f.filter(f=>f[0]!=="cow"&&r[f[0]]!==""&&r[f[0]]!=null).map(f=>`${f[1]}: <b>${esc(r[f[0]])}</b>`).join(" · ");
+if(m==="sale"){const t=r.litres*r.price,b=t-(r.paid||0);h=`<b>${fmt(r.litres)} L</b> to ${esc(r.buyer||"buyer not named")} on ${r.date} · Total ${fmt(t)} · Paid ${fmt(r.paid||0)} · <span class="tag ${b>0?"miss":""}">Balance ${fmt(b)}</span>`}
+if(m==="health"&&r.milkwd&&r.milkwd>=today())h+=' <span class="tag miss">Milk withdrawal active</span>';
+return (M.f.some(f=>f[0]==="cow")?`<b>${esc(nmOf(r.cow))}</b> · `:"")+h}
+function tot(){const a=S.rec[mod]||[];if(!a.length)return"";
+if(mod==="sale"){const t=a.reduce((x,r)=>x+r.litres*r.price,0),p=a.reduce((x,r)=>x+(r.paid||0),0);return `<p><b>Total sales ${fmt(t)} · Paid ${fmt(p)} · Outstanding ${fmt(t-p)}</b></p>`}
+const k=mod==="exp"?"amount":"cost",t=a.reduce((x,r)=>x+(r[k]||0),0);return t?`<p><b>Total cost ${fmt(t)}</b></p>`:""}
+function rec(){const M=MODS[mod],a=S.rec[mod]||[];
+const tabs=Object.keys(MODS).filter(k=>!(U.sb&&!U.fin&&(k==="exp"||k==="sale"))).map(k=>`<button class="btn ${k===mod?"":"alt"}" style="padding:9px 14px;margin:0 6px 8px 0" onclick="mod='${k}';render()">${MODS[k].t}</button>`).join("");
+const fld=f=>{const[k,l,t]=f,id="f_"+k;return `<div><label>${l}</label>`+(Array.isArray(t)?`<select id="${id}">${t.map(o=>`<option>${o}</option>`).join("")}</select>`:t==="cow"||t==="cow0"?`<select id="${id}"><option value="">${t==="cow0"?"All cows":"Choose cow"}</option>${S.cows.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("")}</select>`:`<input id="${id}" type="${t}"${t==="number"?' step="any" min="0" inputmode="decimal"':""}${k==="date"?` value="${today()}"`:""}>`)+`</div>`};
+const items=a.slice().sort((x,y)=>y.at.localeCompare(x.at)).map(r=>`<div class="cow"><div class="n">${line(mod,r)}</div><button class="btn alt" style="padding:8px 12px" onclick="delRec('${r.id}')">Delete</button></div>`).join("")||`<p class="note">No records yet.</p>`;
+return `<h1>${M.t}</h1><p class="sub">Farm records</p>${tabs}<div class="card" style="margin-bottom:16px"><div class="row">${M.f.map(fld).join("")}</div><button class="btn" onclick="addRec()">Save record</button></div><div class="card">${tot()}${items}</div>`}
+function addRec(){const M=MODS[mod],r={id:uid(),at:new Date().toISOString()};
+for(const f of M.f){const v=document.getElementById("f_"+f[0]).value.trim();r[f[0]]=f[2]==="number"&&v!==""?parseFloat(v):v;
+if(M.r.includes(f[0])&&v===""){alert("Please fill in: "+f[1]);return}
+if(f[2]==="number"&&v!==""&&!(parseFloat(v)>=0)){alert(f[1]+" must be zero or more.");return}}
+(S.rec[mod]=S.rec[mod]||[]).push(r);save();msg={t:"Record saved."};render()}
+function delRec(id){if(!confirm("Delete this record?"))return;S.rec[mod]=S.rec[mod].filter(r=>r.id!==id);save();render()}
+const wd=id=>(S.rec.health||[]).some(r=>r.cow===id&&r.milkwd&&r.milkwd>=today())?' <span class="tag miss">Do not sell milk</span>':"";
+function finData(p){const A=m=>(S.rec[m]||[]).filter(r=>p(r.date||r.noticed||"")),sm=(a,k)=>a.reduce((x,r)=>x+(r[k]||0),0),sl=A("sale");
+return{s:sl.reduce((x,r)=>x+r.litres*r.price,0),pd:sm(sl,"paid"),e:sm(A("exp"),"amount")+sm(A("feed"),"cost")+sm(A("health"),"cost")+sm(A("vacc"),"cost"),prod:sum(recs(r=>p(r.date))),sold:sm(sl,"litres")}}
+function fin(){const m=today().slice(0,7),f=finData(d=>d.slice(0,7)===m),st=(n,l)=>`<div class="card stat"><b>${n}</b><span>${l}</span></div>`,sick=new Set((S.rec.health||[]).filter(r=>r.status==="Under treatment").map(r=>r.cow)).size;
+return `<div class="grid">${st(sick,"Cows under treatment")}${st(fmt(f.s),"Sales this month")}${st(fmt(f.e),"Expenses this month")}${st(fmt(f.s-f.e),"Net (estimate)")}${st(fmt(f.prod)+" L","Produced this month")}${st(fmt(f.sold)+" L","Sold this month")}${st(fmt(f.s-f.pd),"Unpaid by buyers")}</div><p class="note" style="margin:-6px 0 16px">Estimates from the records you entered. Not all milk produced is necessarily sold.</p>`}
+function rems(){const t=today(),o=[],dd=x=>Math.round((new Date(x)-new Date(t))/864e5),H=S.rec.health||[],V=S.rec.vacc||[],B=S.rec.breed||[];
+H.forEach(r=>{if(r.milkwd&&dd(r.milkwd)>=0)o.push({w:1,t:`Do NOT sell milk from ${nmOf(r.cow)} until ${r.milkwd}`});if(r.follow&&dd(r.follow)<=3&&r.status!=="Recovered")o.push({t:`Treatment follow-up for ${nmOf(r.cow)}: ${r.follow}`})});
+V.forEach(r=>{if(r.due&&dd(r.due)<=7&&!V.some(x=>x.cow===r.cow&&x.name===r.name&&x.date>r.date))o.push({t:`${r.name} for ${nmOf(r.cow)} due ${r.due}`})});
+B.forEach(r=>{if(r.expected&&dd(r.expected)>=-3&&dd(r.expected)<=14&&!B.some(x=>x.cow===r.cow&&x.type==="Calving"&&x.date>r.date))o.push({t:`${nmOf(r.cow)} expected to calve ${r.expected}`});if(r.check&&dd(r.check)>=-3&&dd(r.check)<=7)o.push({t:`Pregnancy check for ${nmOf(r.cow)}: ${r.check}`})});
+const u=(S.rec.sale||[]).reduce((x,r)=>x+r.litres*r.price-(r.paid||0),0);if(u>0)o.push({t:`Unpaid milk payments: ${fmt(u)}`});
+const h=new Date().getHours();[[0,"Morning"],[12,"Afternoon"],[17,"Evening"]].forEach(([a,n])=>{const m=producing().filter(c=>!S.milk[c.id+"|"+t+"|"+n]).length;if(h>=a&&m)o.push({t:`${n} milk: ${m} cow${m==1?"":"s"} not recorded yet`})});return o}
+function remBox(){const a=rems();return a.length?`<div class="card" style="margin-bottom:16px"><b>Reminders</b>${a.map(x=>`<div class="cow"><span class="n">${x.w?"⚠️ ":"🔔 "}${esc(x.t)}</span></div>`).join("")}</div>`:""}
+const auditBox=()=>S.audit.length?`<div class="card" style="margin-top:16px"><b>Recent corrections</b>${S.audit.slice(-8).reverse().map(a=>{const[c,d,n]=a.key.split("|");return `<div class="cow"><span class="n">${esc(cowName(c))} · ${d} ${n}</span><span>${fmt(a.from)} → <b>${fmt(a.to)} L</b></span></div>`}).join("")}</div>`:"";
+function extra(cow,p){if(cow){const h=Object.keys(MODS).map(m=>{const a=(S.rec[m]||[]).filter(x=>x.cow===cow.id);return a.length?`<h3>${MODS[m].t}</h3>`+a.map(x=>`<p style="margin:4px 0">${line(m,x)}</p>`).join(""):""}).join("");return h?`<h3 style="color:var(--dg)">Health, breeding and feeding history</h3>`+h:""}
+if(U.sb&&!U.fin)return"";const f=finData(p),row=(a,b)=>`<tr><td>${a}</td><td>${b}</td></tr>`;
+return `<h3>Money summary (estimate)</h3><table><tbody>${row("Milk sales",fmt(f.s))}${row("Paid by buyers",fmt(f.pd))}${row("Outstanding",fmt(f.s-f.pd))}${row("Expenses (feed, health, other)",fmt(f.e))}${row("Net income (estimate)",fmt(f.s-f.e))}${row("Milk produced (L)",fmt(f.prod))}${row("Milk sold (L)",fmt(f.sold))}${row("Produced but not recorded as sold (L)",fmt(f.prod-f.sold))}</tbody></table>`}
+function cows(){if(pid)return profile();
+const l=S.cows.filter(c=>(cf==="All"||c.status===cf)&&(c.name+" "+c.tag+" "+(c.breed||"")).toLowerCase().includes(cq.toLowerCase())).map(c=>{const r=recs(x=>x.cow===c.id),days=new Set(r.map(x=>x.date)).size;
+return `<div class="cow">${c.photo?`<img src="${c.photo}" width="40" height="40" style="border-radius:50%;object-fit:cover" alt="">`:'<span style="font-size:1.8rem">🐄</span>'}<div class="n"><a onclick="openCow('${c.id}')" style="cursor:pointer;font-weight:700;color:var(--dg)">${esc(c.name)}</a> <span class="tag">${esc(c.tag)}</span>${wd(c.id)}<br><small>${esc(c.breed||"Breed not set")} · avg ${days?fmt(sum(r)/days):"–"} L/day</small></div>
+<select style="width:110px" onchange="setStatus('${c.id}',this.value)">${["Active","Dry","Sold","Deceased"].map(s=>`<option ${s===c.status?"selected":""}>${s}</option>`).join("")}</select></div>`}).join("")||`<p class="note">No cows found.</p>`;
+return `<h1>Cows</h1><p class="sub">${S.cows.length} registered · tap a name to open the cow’s profile</p>
+<div class="card" style="margin-bottom:16px"><div class="row"><div><label>Cow name *</label><input id="cn"></div><div><label>Ear tag / ID (optional)</label><input id="ct"></div><div><label>Breed</label><input id="cb" placeholder="e.g. Friesian"></div><div><label>Date of birth</label><input id="cd" type="date"></div></div><button class="btn" onclick="addCow()">Add cow</button></div>
+<div class="row"><input placeholder="Search name, tag or breed" value="${esc(cq)}" onchange="cq=this.value;render()"><select onchange="cf=this.value;render()">${["All","Active","Dry","Sold","Deceased"].map(x=>`<option ${x===cf?"selected":""}>${x}</option>`).join("")}</select></div>
+<div class="card">${l}</div>`}
+function profile(){const c=S.cows.find(x=>x.id===pid);if(!c){pid=null;return cows()}
+const r=recs(x=>x.cow===c.id),days=new Set(r.map(x=>x.date)).size,inp=(k,l,t)=>`<div><label>${l}</label><input id="p_${k}" type="${t||"text"}" value="${esc(c[k])}"></div>`;
+const hist=Object.keys(MODS).map(m=>{const a=(S.rec[m]||[]).filter(x=>x.cow===c.id);return a.length?`<h3>${MODS[m].t}</h3>`+a.map(x=>`<div class="cow"><span class="n">${line(m,x)}</span></div>`).join(""):""}).join("")||`<p class="note">No health, breeding or feeding records yet.</p>`;
+return `<p><a onclick="pid=null;render()" style="cursor:pointer;color:var(--g);font-weight:600">← All cows</a></p><h1>${esc(c.name)}</h1><p class="sub">Average ${days?fmt(sum(r)/days):"–"} L/day over ${days} recorded day${days==1?"":"s"}</p>
+<div class="card" style="margin-bottom:16px"><div style="display:flex;gap:14px;align-items:center;margin-bottom:12px">${c.photo?`<img src="${c.photo}" width="72" height="72" style="border-radius:16px;object-fit:cover" alt="">`:'<span style="font-size:3rem">🐄</span>'}<div><label>Photo</label><input type="file" accept="image/*" onchange="cowPhoto(this)"></div></div>
+<div class="row">${inp("name","Name")}${inp("tag","Ear tag / ID")}${inp("breed","Breed")}${inp("dob","Date of birth","date")}${inp("acq","Date acquired","date")}${inp("src","Source of acquisition")}${inp("lact","Lactation number","number")}${inp("notes","Notes")}</div><button class="btn" onclick="saveCow()">Save changes</button> <button class="btn alt" onclick="repFor('${c.id}')">View report</button></div>
+<div class="card">${hist}</div>`}
+function saveCow(){const c=S.cows.find(x=>x.id===pid),g=k=>document.getElementById("p_"+k).value.trim(),nm=g("name"),tag=g("tag");
+if(!nm){alert("Name is required.");return}
+if(S.cows.some(x=>x.id!==c.id&&(x.name.toLowerCase()===nm.toLowerCase()||(tag&&x.tag.toLowerCase()===tag.toLowerCase())))){alert("Another cow already has that name or tag.");return}
+Object.assign(c,{name:nm,tag,breed:g("breed"),dob:g("dob"),acq:g("acq"),src:g("src"),lact:g("lact"),notes:g("notes")});save();msg={t:"Cow details saved."};render()}
+function cowPhoto(i){const f=i.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,240/Math.max(im.width,im.height)),cv=document.createElement("canvas");cv.width=im.width*k;cv.height=im.height*k;cv.getContext("2d").drawImage(im,0,0,cv.width,cv.height);S.cows.find(x=>x.id===pid).photo=cv.toDataURL("image/jpeg",.7);save();render()};im.src=rd.result};rd.readAsDataURL(f)}
+const openCow=id=>{pid=id;render()},repFor=id=>{rScope=id;rMode="all";view="reports";render()};
+function addCow(){const g=i=>document.getElementById(i).value.trim(),tag=g("ct"),nm=g("cn");
+if(!nm){msg={t:"Please enter the cow’s name.",e:1};return render()}
+if(S.cows.some(c=>c.name.toLowerCase()===nm.toLowerCase()||(tag&&c.tag.toLowerCase()===tag.toLowerCase()))){msg={t:"A cow with that name or tag already exists on this farm.",e:1};return render()}
+S.cows.push({id:uid(),tag,name:nm,breed:g("cb"),dob:g("cd"),status:"Active"});save();msg={t:"Cow added."};render()}
+function setStatus(id,s){S.cows.find(c=>c.id===id).status=s;save();render()}
+function milk(){const rows=producing().map(c=>{const r=S.milk[c.id+"|"+mDate+"|"+mSess];
+return `<div class="cow"><div class="n"><b>${esc(c.name)}</b> <span class="tag">${esc(c.tag)}</span>${wd(c.id)}<br>${r?`<span class="tag">${r.status} · ${fmt(r.litres)} L</span>`:`<span class="tag miss">Missing</span>`}</div>
+<input type="number" inputmode="decimal" min="0" step="0.1" data-cow="${c.id}" placeholder="litres" value="${r?r.litres:""}"></div>`}).join("")||`<p class="note">No active cows. Add cows first.</p>`;
+const missing=producing().filter(c=>!S.milk[c.id+"|"+mDate+"|"+mSess]).length;
+return `<h1>Record milk</h1><p class="sub">${missing} cow${missing==1?"":"s"} still missing for this session</p>
+<div class="card" style="margin-bottom:16px"><div class="row"><div><label>Date</label><input type="date" value="${mDate}" onchange="mDate=this.value;render()"></div>
+<div><label>Session</label><select onchange="mSess=this.value;render()">${SESS.map(s=>`<option ${s===mSess?"selected":""}>${s}</option>`).join("")}</select></div></div></div>
+<div class="card">${rows}</div>
+<button class="btn" style="width:100%;margin-top:14px;font-size:1.1rem" onclick="saveMilk()">Save entries</button>
+<p class="note">Leave a box empty if a cow was not recorded. Typing 0 saves a real zero-litre entry. Re-saving a changed value replaces the old one and logs the correction.</p>${auditBox()}`}
+function saveMilk(){let n=0;document.querySelectorAll("[data-cow]").forEach(i=>{if(i.value==="")return;
+const v=parseFloat(i.value);if(isNaN(v)||v<0)return;const k=i.dataset.cow+"|"+mDate+"|"+mSess,old=S.milk[k];
+if(old&&old.litres===v)return;
+if(old)S.audit.push({key:k,from:old.litres,to:v,at:new Date().toISOString()});
+S.milk[k]={cow:i.dataset.cow,date:mDate,session:mSess,litres:v,by:"Me",at:new Date().toISOString(),status:"Saved Offline"};n++});
+save();msg=n?{t:n+" entr"+(n==1?"y":"ies")+" saved on this device."}:{t:"Nothing new to save.",e:1};render();if(n&&needBk()&&S.bkAsked!==today()){S.bkAsked=today();save();setTimeout(()=>{if(confirm("Milk saved. Back up today’s records to your email now?"))go("settings")},400)}}
+function settings(){const f=S.farm,i=(id,l,v)=>`<div><label>${l}</label><input id="${id}" value="${esc(v)}"></div>`;
+return `<h1>Farm details</h1><p class="sub">Shown on the letterhead of every report</p><div class="card"><div class="row">${i("fn","Farm name",f.name)}${i("fa","Address / location",f.addr)}${i("fp","Phone",f.phone)}${i("fe","Email",f.email)}</div><button class="btn" onclick="saveFarm()">Save farm details</button> <button class="btn alt" onclick="logout()">Log out</button></div>${teamCard()}${secCard()}`}
+function saveFarm(){const g=i=>document.getElementById(i).value.trim();S.farm={name:g("fn"),addr:g("fa"),phone:g("fp"),email:g("fe")};save();msg={t:"Farm details saved."};render()}
+let rScope="farm",rMode="daily",rDate=today();
+function reports(){const f=S.farm,cow=S.cows.find(c=>c.id===rScope),mo=rMode==="monthly";
+const inD=d=>rMode==="daily"?d===rDate:mo?d.slice(0,7)===rDate.slice(0,7):true,inR=r=>inD(r.date);
+const rs=recs(r=>inR(r)&&(rScope==="farm"||r.cow===rScope));
+const per=rMode==="daily"?"Daily report, "+rDate:mo?"Monthly report, "+rDate.slice(0,7):"Up-to-date record, all entries to "+today();
+const title=(cow?"Milk record: "+esc(cow.name):"Whole farm milk record")+" · "+per;
+const C=v=>v===undefined?"–":fmt(v);
+const by={};rs.forEach(r=>{(by[r.date]=by[r.date]||{})[r.session]=(by[r.date][r.session]||0)+r.litres});
+const ds=Object.keys(by).sort(),dt=d=>SESS.reduce((a,s)=>a+(by[d][s]||0),0),T=sum(rs);
+const dayT=ds.length?`<div class="wrap"><table><thead><tr><th>Date</th>${SESS.map(s=>`<th>${s}</th>`).join("")}<th>Total (L)</th></tr></thead><tbody>${ds.map(d=>`<tr><td>${d}</td>${SESS.map(s=>`<td>${C(by[d][s])}</td>`).join("")}<td><b>${fmt(dt(d))}</b></td></tr>`).join("")}</tbody><tfoot><tr><td>Total</td>${SESS.map(s=>`<td>${fmt(ds.reduce((a,d)=>a+(by[d][s]||0),0))}</td>`).join("")}<td>${fmt(T)}</td></tr></tfoot></table></div>`:`<p class="note">No milk records for this period.</p>`;
+let cowT="";if(!cow){cowT=`<h3>Production per cow</h3><div class="wrap"><table><thead><tr><th>Cow</th>${SESS.map(s=>`<th>${s}</th>`).join("")}<th>Total (L)</th><th>Avg / day</th></tr></thead><tbody>${S.cows.map(c=>{const rr=rs.filter(r=>r.cow===c.id),q=s=>{const x=rr.filter(r=>r.session===s);return x.length?sum(x):undefined},n=new Set(rr.map(r=>r.date)).size;return `<tr><td>${esc(c.name)} <span class="tag">${esc(c.tag)}</span></td>${SESS.map(s=>`<td>${C(q(s))}</td>`).join("")}<td><b>${fmt(sum(rr))}</b></td><td>${n?fmt(sum(rr)/n):"–"}</td></tr>`}).join("")}</tbody></table></div>`}
+const n=ds.length,sel=(v,l)=>`<option value="${v}" ${rScope===v?"selected":""}>${esc(l)}</option>`;
+return `<div class="noprint"><h1>Reports</h1><p class="sub">Choose a cow or the whole farm, then print or save as PDF</p><div class="card" style="margin-bottom:16px"><div class="row"><div><label>Report for</label><select onchange="rScope=this.value;render()">${sel("farm","Whole farm")}${S.cows.map(c=>sel(c.id,c.name)).join("")}</select></div><div><label>Period</label><select onchange="rMode=this.value;if(rDate.length<10)rDate+='-01';render()">${[["daily","Daily"],["monthly","Monthly"],["all","Up to date (all records)"]].map(x=>`<option value="${x[0]}" ${rMode===x[0]?"selected":""}>${x[1]}</option>`).join("")}</select></div>${rMode==="all"?"":`<div><label>${mo?"Month":"Date"}</label><input type="${mo?"month":"date"}" value="${mo?rDate.slice(0,7):rDate}" onchange="rDate=this.value||today();render()"></div>`}</div><button class="btn" onclick="window.print()">🖨️ Print / Save as PDF</button></div></div>
+<div class="card"><div class="lh">${logo}<div><h2>${esc(f.name||"Your farm name")}</h2><small>${esc([f.addr,f.phone,f.email].filter(Boolean).join(" · ")||"Add address and contact details under Farm")}</small></div></div>
+<h3 style="margin:0;color:var(--dg)">${title}</h3><p class="sub">Generated ${new Date().toLocaleString()}</p>
+<div class="grid"><div class="card stat"><b>${fmt(T)} L</b><span>Total milk</span></div><div class="card stat"><b>${n}</b><span>Days recorded</span></div><div class="card stat"><b>${n?fmt(T/n):"–"} L</b><span>Average per recorded day</span></div></div>
+${cowT}<h3>${cow?"Milk by day":"Farm milk by day"}</h3>${dayT}
+${extra(cow,inD)}<p class="note">Based on entered records only. A dash (–) means nothing was recorded, not zero litres.</p></div>`}
+addEventListener("online",()=>{online=true;render();sync()});setTimeout(()=>{if(U&&U.sb)sync()},1500);addEventListener("offline",()=>{online=false;render()});
+{const c=localStorage.getItem("gpd_cur"),u=users().find(x=>x.id===c);if(u&&!u.bio)loadUser(u)}
+render();
+if("serviceWorker"in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+</script></body></html>
