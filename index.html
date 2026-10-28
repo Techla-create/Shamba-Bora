@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Shamba Bora</title>
+<title>Shamba Bora</title><script>try{var t=localStorage.getItem("gpd_theme")||"light";if(t!=="auto")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <link rel="manifest" href="manifest.json"><meta name="theme-color" content="#228B22"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><link rel="apple-touch-icon" href="icon-192.png"><link rel="icon" href="icon-192.png">
 <style>
 :root{--g:#228B22;--dg:#14532D;--lg:#E8F5E9;--bg:#F7FAF7;--card:#fff;--tx:#1F2937;--bd:#DCE7DC;--warn:#b45309;--err:#b91c1c;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
@@ -53,7 +53,7 @@ nav.open{transform:none;box-shadow:0 0 40px rgba(0,0,0,.3)}
 </div>
 <script src="config.js"></script>
 <script>
-spl(35);const SESS=["Morning","Afternoon","Evening"];
+spl(35);const APP_VERSION="1.3.0";const SESS=["Morning","Afternoon","Evening"];
 const today=()=>new Date().toISOString().slice(0,10);
 let S={cows:[],milk:{},audit:[]},view="dash",msg=null,mDate=today(),mSess="Morning",online=navigator.onLine;
 let U=null,authMode="login";
@@ -64,7 +64,7 @@ async function hashPw(pw,salt){const k=await crypto.subtle.importKey("raw",new T
 function loadUser(u){U=u;S={cows:[],milk:{},audit:[]};try{const d=localStorage.getItem("gpd_"+u.id);if(d)S=JSON.parse(d)}catch(e){}S.rec=S.rec||{};S.farm=S.farm||{name:u.farm,addr:"",phone:"",email:""};localStorage.setItem("gpd_cur",u.id)}
 function logout(){U=null;localStorage.removeItem("gpd_cur");localStorage.removeItem("gpd_tk");TK=null;msg=null;view="dash";render()}
 const aerr=t=>{document.getElementById("am").innerHTML=`<div class="msg err">${esc(t)}</div>`};
-function authView(){document.getElementById("nav").innerHTML="";if(authMode==="restore")return restoreView();if(CLOUD&&authMode==="admin")return admLogin();if(CLOUD)return cloudAuth();const reg=authMode==="reg",f=(id,l,t)=>`<div style="margin-bottom:12px"><label>${l}</label><input id="${id}" type="${t||"text"}" autocomplete="${t==="password"?(reg?"new-password":"current-password"):"off"}"></div>`;
+function authView(){document.getElementById("nav").innerHTML="";if(authMode==="restore")return restoreView();if(CLOUD&&authMode==="admin")return admLogin();if(CLOUD&&authMode==="forgot")return forgotView();if(CLOUD)return cloudAuth();const reg=authMode==="reg",f=(id,l,t)=>`<div style="margin-bottom:12px"><label>${l}</label><input id="${id}" type="${t||"text"}" autocomplete="${t==="password"?(reg?"new-password":"current-password"):"off"}"></div>`;
 document.getElementById("main").innerHTML=`<div style="max-width:380px;margin:6vh auto"><div style="text-align:center;margin-bottom:16px">${logoBig}<h1>Shamba Bora</h1><p class="sub">${reg?"Create your farm account":"Log in to your farm"}</p></div><div id="am"></div>${bioBtns()}<div class="card">${reg?f("rf","Farm name")+f("rn","Your name")+f("re","Email for backups (optional)","email"):""}${f("ru","Username")}${f("rp",reg?"Password (6+ characters)":"Password","password")}<button class="btn" style="width:100%" onclick="${reg?"doReg()":"doLogin()"}">${reg?"Create account":"Log in"}</button></div><p style="text-align:center"><a href="#" onclick="authMode='${reg?"login":"reg"}';render();return false" style="color:var(--g);font-weight:600">${reg?"I already have an account":"Create a new account"}</a></p><p style="text-align:center"><a href="#" onclick="authMode='restore';render();return false" style="color:var(--g);font-weight:600">Restore from backup file</a></p><p class="note">Works offline. Accounts are kept on this phone until cloud sync is connected.</p></div>`}
 async function aesKey(pw,salt,use){const k=await crypto.subtle.importKey("raw",new TextEncoder().encode(pw),"PBKDF2",false,["deriveKey"]);return crypto.subtle.deriveKey({name:"PBKDF2",hash:"SHA-256",salt,iterations:150000},k,{name:"AES-GCM",length:256},false,use)}
 async function makeBackup(pw){const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12)),key=await aesKey(pw,salt,["encrypt"]);
@@ -116,10 +116,10 @@ async function ensureTk(){if(!TK)try{TK=JSON.parse(localStorage.getItem("gpd_tk"
 try{saveTk(await api("/auth/v1/token?grant_type=refresh_token",{m:"POST",b:{refresh_token:TK.refresh_token},anon:1}));return true}catch(e){return false}}
 const netErr=e=>e instanceof TypeError;
 function cloudAuth(){const reg=authMode==="reg",f=(id,l,t)=>`<div style="margin-bottom:12px"><label>${l}</label><input id="${id}" type="${t||"text"}" autocomplete="off"></div>`;
-const body=pendMsg?`<div class="card"><p><b>${esc(pendMsg)}</b></p></div>`:`<div class="card">${reg?f("rn","Your name")+`<div style="margin-bottom:12px"><label>I am</label><select id="rk" onchange="rkChange()"><option value="owner">A farm owner (new farm)</option><option value="worker">A worker joining a farm</option></select></div><div id="rkb" style="margin-bottom:12px"><label>Farm name</label><input id="rf"></div>`:""}${f("re","Email","email")}${f("rp","Password"+(reg?" (6+ characters)":""),"password")}<button class="btn" style="width:100%" onclick="${reg?"cloudReg()":"cloudLogin()"}">${reg?"Create account":"Log in"}</button></div>`;
+const body=pendMsg?`<div class="card"><p><b>${esc(pendMsg)}</b></p></div>`:`<div class="card">${reg?f("rn","Your name")+`<div style="margin-bottom:12px"><label>I am</label><select id="rk" onchange="rkChange()"><option value="owner">A farm owner (new farm)</option><option value="worker">A worker joining a farm</option></select></div><div id="rkb" style="margin-bottom:12px"><label>Farm name</label><input id="rf"></div>`:""}${f("re","Email","email")}${f("rp","Password"+(reg?" (6+ characters)":""),"password")}<button class="btn" style="width:100%" onclick="${reg?"cloudReg()":"cloudLogin()"}">${reg?"Create account":"Log in"}</button>${reg?"":`<p style="text-align:center;margin:12px 0 0"><a href="#" onclick="authMode='forgot';render();return false" style="color:var(--g);font-weight:600">Forgot password?</a></p>`}</div>`;
 const lk=(a,t)=>`<p style="text-align:center"><a href="#" onclick="${a};render();return false" style="color:var(--g);font-weight:600">${t}</a></p>`;
 document.getElementById("nav").innerHTML="";
-document.getElementById("main").innerHTML=`<div style="max-width:380px;margin:6vh auto"><div style="text-align:center;margin-bottom:16px">${logoBig}<h1>Shamba Bora</h1><p class="sub">${reg?"Create your account. An administrator must approve it before you can use it.":"Log in to your farm"}</p></div><div id="am"></div>${pendMsg?"":bioBtns()}${body}${pendMsg?lk("pendMsg=null;authMode='login'","Back to login"):lk("authMode='"+(reg?"login":"reg")+"'",reg?"I already have an account":"Create a new account")+lk("authMode='restore'","Restore from backup file")+lk("authMode='admin'","Administrator login")}<p class="note">After your first login on a phone, the app also works offline.</p></div>`}
+document.getElementById("main").innerHTML=`<div style="max-width:380px;margin:6vh auto"><div style="text-align:center;margin-bottom:16px">${logoBig}<h1>Shamba Bora</h1><p class="sub">${reg?"Create your account. An administrator must approve it before you can use it.":"Log in to your farm"}</p></div><div id="am"></div>${pendMsg?"":bioBtns()}${body}${pendMsg?lk("pendMsg=null;authMode='login'","Back to login"):lk("authMode='"+(reg?"login":"reg")+"'",reg?"I already have an account":"Create a new account")+lk("authMode='restore'","Restore from backup file")+lk("authMode='admin'","Administrator login")}<p class="note">After your first login on a phone, the app also works offline. Version ${APP_VERSION}.</p></div>`}
 function rkChange(){document.getElementById("rkb").innerHTML=document.getElementById("rk").value==="owner"?'<label>Farm name</label><input id="rf">':'<label>Farm code</label><input id="rf" placeholder="e.g. GRE-4K7Q" style="text-transform:uppercase">'}
 async function runIntent(email){const t=localStorage.getItem("gpd_intent");if(!t)return;const i=JSON.parse(t);if(i.email!==email)return;localStorage.removeItem("gpd_intent");await rpc("dairy_register",{p_name:i.name,p_farm:i.farm||null,p_code:i.code||null})}
 const redirQ=()=>{if(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform())return"";return"?redirect_to="+encodeURIComponent(CFG.site||location.origin+location.pathname.replace(/[^\/]*$/,""))};
@@ -158,7 +158,7 @@ const ds=(k,v)=>sj(k.startsWith("milk:")?{...v,status:undefined}:v);
 function kinds(){const o={};S.cows.forEach(c=>o["cow:"+c.id]=c);Object.values(S.milk).forEach(r=>o["milk:"+r.cow+"|"+r.date+"|"+r.session]=r);Object.keys(MODS).forEach(m=>(S.rec[m]||[]).forEach(r=>o[m+":"+r.id]=r));o["farm:main"]=S.farm;return o}
 function waiting(){const cur=kinds(),sy=S.sy||{};let n=0;for(const k in cur)if(sy[k]!==ds(k,cur[k]))n++;for(const k in sy)if(!(k in cur))n++;return n}
 function bannerHtml(){const pnd=U&&U.sb?waiting():Object.values(S.milk).filter(r=>r.status!=="Synced").length;
-return `<div id="bn" class="msg ${online&&!syncErr?"":"err"}">${online?"Online":"Offline"} · ${pnd} record${pnd==1?"":"s"} ${U&&U.sb?"waiting to send · "+(S.ls?"last synced "+new Date(S.ls).toLocaleTimeString():"not synced yet")+(syncing?" · syncing…":"")+(syncErr?" · sync problem: "+esc(syncErr):"")+` <button class="btn alt" style="padding:4px 10px;margin-left:6px" onclick="sync(true)">Sync now</button>`:"saved on this device only"} <button class="btn alt" style="padding:4px 10px;margin-left:6px" onclick="logoutAsk()">Log out</button></div>`}
+return `<div id="bn" class="msg ${online&&!syncErr?"":"err"}">${online?"Online":"Offline"} · ${pnd} record${pnd==1?"":"s"} ${U&&U.sb?"waiting to send · "+(S.ls?"last synced "+new Date(S.ls).toLocaleTimeString():"not synced yet")+(syncing?" · syncing…":"")+(syncErr?" · sync problem: "+esc(syncErr):"")+` <button class="btn alt" style="padding:4px 10px;margin-left:6px" onclick="sync(true)">Sync now</button>`:"saved on this device only"}</div>`}
 const updBanner=()=>{const e=document.getElementById("bn");if(e)e.outerHTML=bannerHtml()};
 const busy=()=>[...document.querySelectorAll("#main input,#main select")].some(i=>i.id&&((i.tagName==="INPUT"&&i.type!=="file"&&i.value)||i===document.activeElement));
 function applyDoc(d){const k=d.kind,id=d.id;
@@ -208,6 +208,54 @@ try{saveTk(await api("/auth/v1/token?grant_type=password",{m:"POST",b:{email,pas
 if(!me.is_admin||me.status!=="approved"){TK=null;localStorage.removeItem("gpd_tk");return aerr("This account is not an administrator.")}
 admOn=true;authMode="login";await admLoad()}
 catch(e){aerr(netErr(e)?"No connection. Try again with internet.":/invalid|credentials/i.test(e.message)?"Wrong email or password.":e.message)}}
+const isApp=()=>!!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform());
+{const g=localStorage.getItem("gpd_upd");if(g){localStorage.removeItem("gpd_upd");if(g===APP_VERSION)msg={t:"App updated to version "+APP_VERSION+"."}}}
+async function autoUpdate(){if(isApp()||!navigator.onLine)return;
+try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const v=(await r.json()).version;
+if(!v||v===APP_VERSION){sessionStorage.removeItem("gpd_try");return}
+if(sessionStorage.getItem("gpd_try")===v||busy())return;
+sessionStorage.setItem("gpd_try",v);localStorage.setItem("gpd_upd",v);save();
+if("serviceWorker"in navigator)for(const g of await navigator.serviceWorker.getRegistrations())await g.unregister();
+if(window.caches)for(const k of await caches.keys())await caches.delete(k);
+location.replace(location.pathname+"?u="+Date.now())}catch(e){}}
+let recov=null,hashErr="";
+{const h=new URLSearchParams(location.hash.slice(1));
+if(h.get("access_token")&&h.get("type")==="recovery"){recov=h.get("access_token");TK={access_token:recov,refresh_token:h.get("refresh_token")||"",expires_at:Math.floor(Date.now()/1000)+(+h.get("expires_in")||3600)};history.replaceState(null,"",location.pathname)}
+else if(h.get("error")){recov="err";hashErr=h.get("error_description")||"This link is not valid.";history.replaceState(null,"",location.pathname)}}
+function recoverView(){document.getElementById("nav").innerHTML="";const ok=recov&&recov!=="err";
+document.getElementById("main").innerHTML=`<div style="max-width:380px;margin:6vh auto"><div style="text-align:center;margin-bottom:16px">${logoBig}<h1>${ok?"Set a new password":"Link problem"}</h1></div><div id="am"></div>${ok?`<div class="card"><div style="margin-bottom:12px"><label>New password (6+ characters)</label><input id="np" type="password" autocomplete="new-password"></div><div style="margin-bottom:12px"><label>Repeat the password</label><input id="np2" type="password" autocomplete="new-password"></div><button class="btn" style="width:100%" onclick="doReset()">Save new password</button></div>`:`<div class="card"><p>${esc(hashErr||"This reset link is not valid.")} Please request a new one.</p><button class="btn" style="width:100%" onclick="recov=null;authMode='forgot';render()">Request a new link</button></div>`}</div>`}
+async function doReset(){const a=document.getElementById("np").value,b=document.getElementById("np2").value;
+if(a.length<6)return aerr("The password needs 6 or more characters.");if(a!==b)return aerr("The two passwords do not match.");
+try{await api("/auth/v1/user",{m:"PUT",b:{password:a}});TK=null;localStorage.removeItem("gpd_tk");recov=null;authMode="login";pendMsg="Password changed. Go back to login and use your new password.";render()}
+catch(e){aerr(netErr(e)?"No connection. Try again with internet.":e.message)}}
+function forgotView(){document.getElementById("nav").innerHTML="";document.getElementById("main").innerHTML=`<div style="max-width:380px;margin:6vh auto"><div style="text-align:center;margin-bottom:16px">${logoBig}<h1>Forgot password</h1><p class="sub">We will email you a link to choose a new password</p></div><div id="am"></div><div class="card"><div style="margin-bottom:12px"><label>Your email</label><input id="re" type="email" autocomplete="off"></div><button class="btn" style="width:100%" onclick="doForgot()">Send reset link</button></div><p style="text-align:center"><a href="#" onclick="authMode='login';render();return false" style="color:var(--g);font-weight:600">Back to login</a></p></div>`}
+async function doForgot(){const email=document.getElementById("re").value.trim().toLowerCase();
+if(!/^\S+@\S+\.\S+$/.test(email))return aerr("Enter the email you registered with.");
+if(!navigator.onLine)return aerr("You need internet to request a reset link.");
+try{await api("/auth/v1/recover"+redirQ(),{m:"POST",b:{email},anon:1});document.getElementById("am").innerHTML='<div class="msg">If that email has an account, a reset link has been sent. Check your inbox and your spam folder.</div>'}
+catch(e){aerr(netErr(e)?"No connection. Try again with internet.":/rate/i.test(e.message)?"Too many requests. Wait a few minutes and try again.":e.message)}}
+const themeNow=()=>localStorage.getItem("gpd_theme")||"light";
+function setTheme(t){localStorage.setItem("gpd_theme",t);if(t==="auto")document.documentElement.removeAttribute("data-theme");else document.documentElement.setAttribute("data-theme",t);render()}
+const toCsv=rows=>"\ufeff"+rows.map(r=>r.map(c=>'"'+String(c==null?"":c).replace(/"/g,'""')+'"').join(",")).join("\r\n");
+async function saveFile(name,text,mime){try{
+if(isApp()){const cp=window.Capacitor.Plugins,w=await cp.Filesystem.writeFile({path:name,data:text,directory:"CACHE",encoding:"utf8"});await cp.Share.share({title:name,files:[w.uri]});return}
+const file=new File([text],name,{type:mime});
+if(/iPhone|iPad|iPod/.test(navigator.userAgent)&&navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:name});return}
+const a=document.createElement("a");a.href=URL.createObjectURL(file);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},3000)}
+catch(e){if(!(e&&(e.name==="AbortError"||/cancel/i.test(e.message||""))))alert("Could not save the file: "+((e&&e.message)||e))}}
+function repCsv(){const el=document.getElementById("sheet");if(!el)return;const f=el.querySelector(".lh h2"),t=el.querySelector("h3"),rows=[[f?f.textContent:"Shamba Bora"],[t?t.textContent:"Report"],[]];
+el.querySelectorAll(".stat").forEach(c=>rows.push([c.querySelector("span").textContent,c.querySelector("b").textContent]));rows.push([]);
+el.querySelectorAll("table").forEach(tb=>{const w=tb.closest(".wrap")||tb,p=w.previousElementSibling;if(p&&p.tagName==="H3")rows.push([p.textContent]);
+tb.querySelectorAll("tr").forEach(tr=>rows.push([...tr.children].map(c=>c.textContent.trim())));rows.push([])});
+saveFile("shamba-bora-report-"+today()+".csv",toCsv(rows),"text/csv")}
+async function logoData(){try{const b=await(await fetch("logo.png")).blob();return await new Promise(r=>{const f=new FileReader();f.onload=()=>r(f.result);f.readAsDataURL(b)})}catch(e){return"logo.png"}}
+async function repHtml(){const el=document.getElementById("sheet");if(!el)return;const css=[...document.querySelectorAll("style")].map(x=>x.textContent).join("");
+let html=`<!DOCTYPE html><html data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Shamba Bora report</title><style>${css} nav,.tb,#ov,#splash{display:none}body{background:#fff;padding:16px}</style></head><body>${el.outerHTML}<p class="noprint" style="text-align:center"><button onclick="window.print()" style="padding:12px 20px;font-size:1rem">Print / Save as PDF</button></p></body></html>`;
+html=html.split('src="logo.png"').join('src="'+await logoData()+'"');saveFile("shamba-bora-report-"+today()+".html",html,"text/html")}
+function dlRec(){const M=MODS[mod],a=(S.rec[mod]||[]).slice().sort((x,y)=>x.at.localeCompare(y.at));if(!a.length){alert("There are no records to download yet.");return}
+const head=M.f.map(f=>f[1]);if(mod==="sale")head.push("Total","Balance");
+const rows=[[(S.farm&&S.farm.name)||"Shamba Bora"],[M.t+" records"],[],head,...a.map(r=>{const v=M.f.map(f=>f[2]==="cow"||f[2]==="cow0"?nmOf(r[f[0]]):r[f[0]]);if(mod==="sale"){const t=r.litres*r.price;v.push(t,t-(r.paid||0))}return v})];
+saveFile("shamba-bora-"+mod+"-"+today()+".csv",toCsv(rows),"text/csv")}
 async function doReg(){const g=i=>(document.getElementById(i)||{value:""}).value.trim(),p=document.getElementById("rp").value,un=g("ru").toLowerCase();
 if(!g("rf")||!g("rn")||!un||p.length<6)return aerr("Fill in every field. The password needs 6 or more characters.");
 if(g("re")&&!/^\S+@\S+\.\S+$/.test(g("re")))return aerr("That email address does not look right.");
@@ -229,9 +277,9 @@ const sum=a=>a.reduce((x,r)=>x+r.litres,0);
 const fmt=n=>(Math.round(n*10)/10).toFixed(1);
 const logo=`<img src="logo.png" alt="Shamba Bora" style="height:56px;width:auto;background:#fff;border-radius:10px">`,logoBig=`<img src="logo.png" alt="Shamba Bora" style="display:block;margin:0 auto 8px;width:170px;max-width:60%;background:#fff;border-radius:14px">`;
 function nav(){const t=[["dash","🏠","Home"],["milk","🥛","Milk"],["cows","🐄","Cows"],["rec","🩺","Records"],["reports","📄","Reports"],["settings","⚙️","Farm"],...(U&&U.admin?[["admin","🛡️","Admin"]]:[])];
-document.getElementById("nav").innerHTML=`<div class="logo"><img src="logo.png" alt="Shamba Bora" style="width:150px;max-width:100%;background:#fff;border-radius:12px"></div>`+t.map(x=>`<button class="${view===x[0]?"on":""}" onclick="go('${x[0]}')"><span>${x[1]}</span>${x[2]}</button>`).join("")+`<button style="margin-top:auto" onclick="menu(0);logoutAsk()"><span>🚪</span>Log out</button>`}
+document.getElementById("nav").innerHTML=`<div class="logo"><img src="logo.png" alt="Shamba Bora" style="width:150px;max-width:100%;background:#fff;border-radius:12px"></div>`+t.map(x=>`<button class="${view===x[0]?"on":""}" onclick="go('${x[0]}')"><span>${x[1]}</span>${x[2]}</button>`).join("")+`<button onclick="menu(0);setTheme(themeNow()==='dark'?'light':'dark')"><span>🌓</span>${themeNow()==="dark"?"Light mode":"Dark mode"}</button><button style="margin-top:auto" onclick="menu(0);logoutAsk()"><span>🚪</span>Log out</button>`}
 function go(v){menu(0);view=v;msg=null;if(v==="cows")pid=null;render();if(v==="admin")admLoad()}
-function render(){if(!U)return admOn?adminView():authView();nav();const m=document.getElementById("main");
+function render(){if(recov)return recoverView();if(!U)return admOn?adminView():authView();nav();const m=document.getElementById("main");
 let h=tbHtml()+bannerHtml();
 if(msg)h+=`<div class="msg ${msg.e?"err":""}">${esc(msg.t)}</div>`;
 m.innerHTML=h+({dash,milk,cows,rec,reports,settings,admin}[view])();}
@@ -268,7 +316,7 @@ function rec(){const M=MODS[mod],a=S.rec[mod]||[];
 const tabs=Object.keys(MODS).filter(k=>!(U.sb&&!U.fin&&(k==="exp"||k==="sale"))).map(k=>`<button class="btn ${k===mod?"":"alt"}" style="padding:9px 14px;margin:0 6px 8px 0" onclick="mod='${k}';render()">${MODS[k].t}</button>`).join("");
 const fld=f=>{const[k,l,t]=f,id="f_"+k;return `<div><label>${l}</label>`+(Array.isArray(t)?`<select id="${id}">${t.map(o=>`<option>${o}</option>`).join("")}</select>`:t==="cow"||t==="cow0"?`<select id="${id}"><option value="">${t==="cow0"?"All cows":"Choose cow"}</option>${S.cows.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("")}</select>`:`<input id="${id}" type="${t}"${t==="number"?' step="any" min="0" inputmode="decimal"':""}${k==="date"?` value="${today()}"`:""}>`)+`</div>`};
 const items=a.slice().sort((x,y)=>y.at.localeCompare(x.at)).map(r=>`<div class="cow"><div class="n">${line(mod,r)}</div><button class="btn alt" style="padding:8px 12px" onclick="delRec('${r.id}')">Delete</button></div>`).join("")||`<p class="note">No records yet.</p>`;
-return `<h1>${M.t}</h1><p class="sub">Farm records</p>${tabs}<div class="card" style="margin-bottom:16px"><div class="row">${M.f.map(fld).join("")}</div><button class="btn" onclick="addRec()">Save record</button></div><div class="card">${tot()}${items}</div>`}
+return `<h1>${M.t}</h1><p class="sub">Farm records</p>${tabs}<div class="card" style="margin-bottom:16px"><div class="row">${M.f.map(fld).join("")}</div><button class="btn" onclick="addRec()">Save record</button></div><div class="card">${tot()}<button class="btn alt" style="margin-bottom:10px" onclick="dlRec()">⬇ Download ${M.t} (Excel/CSV)</button>${items}</div>`}
 function addRec(){const M=MODS[mod],r={id:uid(),at:new Date().toISOString()};
 for(const f of M.f){const v=document.getElementById("f_"+f[0]).value.trim();r[f[0]]=f[2]==="number"&&v!==""?parseFloat(v):v;
 if(M.r.includes(f[0])&&v===""){alert("Please fill in: "+f[1]);return}
@@ -334,7 +382,7 @@ if(old)S.audit.push({key:k,from:old.litres,to:v,at:new Date().toISOString()});
 S.milk[k]={cow:i.dataset.cow,date:mDate,session:mSess,litres:v,by:"Me",at:new Date().toISOString(),status:"Saved Offline"};n++});
 save();msg=n?{t:n+" entr"+(n==1?"y":"ies")+" saved on this device."}:{t:"Nothing new to save.",e:1};render();if(n&&needBk()&&S.bkAsked!==today()){S.bkAsked=today();save();setTimeout(()=>{if(confirm("Milk saved. Back up today’s records to your email now?"))go("settings")},400)}}
 function settings(){const f=S.farm,i=(id,l,v)=>`<div><label>${l}</label><input id="${id}" value="${esc(v)}"></div>`;
-return `<h1>Farm details</h1><p class="sub">Shown on the letterhead of every report</p><div class="card"><div class="row">${i("fn","Farm name",f.name)}${i("fa","Address / location",f.addr)}${i("fp","Phone",f.phone)}${i("fe","Email",f.email)}</div><button class="btn" onclick="saveFarm()">Save farm details</button> <button class="btn alt" onclick="logout()">Log out</button></div>${teamCard()}${secCard()}`}
+return `<h1>Farm details</h1><p class="sub">Shown on the letterhead of every report</p><div class="card"><div class="row">${i("fn","Farm name",f.name)}${i("fa","Address / location",f.addr)}${i("fp","Phone",f.phone)}${i("fe","Email",f.email)}</div><button class="btn" onclick="saveFarm()">Save farm details</button> <button class="btn alt" onclick="logout()">Log out</button></div>${teamCard()}${secCard()}<p class="note" style="text-align:center">Shamba Bora version ${APP_VERSION}</p>`}
 function saveFarm(){const g=i=>document.getElementById(i).value.trim();S.farm={name:g("fn"),addr:g("fa"),phone:g("fp"),email:g("fe")};save();msg={t:"Farm details saved."};render()}
 let rScope="farm",rMode="daily",rDate=today();
 function reports(){const f=S.farm,cow=S.cows.find(c=>c.id===rScope),mo=rMode==="monthly";
@@ -348,13 +396,13 @@ const ds=Object.keys(by).sort(),dt=d=>SESS.reduce((a,s)=>a+(by[d][s]||0),0),T=su
 const dayT=ds.length?`<div class="wrap"><table><thead><tr><th>Date</th>${SESS.map(s=>`<th>${s}</th>`).join("")}<th>Total (L)</th></tr></thead><tbody>${ds.map(d=>`<tr><td>${d}</td>${SESS.map(s=>`<td>${C(by[d][s])}</td>`).join("")}<td><b>${fmt(dt(d))}</b></td></tr>`).join("")}</tbody><tfoot><tr><td>Total</td>${SESS.map(s=>`<td>${fmt(ds.reduce((a,d)=>a+(by[d][s]||0),0))}</td>`).join("")}<td>${fmt(T)}</td></tr></tfoot></table></div>`:`<p class="note">No milk records for this period.</p>`;
 let cowT="";if(!cow){cowT=`<h3>Production per cow</h3><div class="wrap"><table><thead><tr><th>Cow</th>${SESS.map(s=>`<th>${s}</th>`).join("")}<th>Total (L)</th><th>Avg / day</th></tr></thead><tbody>${S.cows.map(c=>{const rr=rs.filter(r=>r.cow===c.id),q=s=>{const x=rr.filter(r=>r.session===s);return x.length?sum(x):undefined},n=new Set(rr.map(r=>r.date)).size;return `<tr><td>${esc(c.name)} <span class="tag">${esc(c.tag)}</span></td>${SESS.map(s=>`<td>${C(q(s))}</td>`).join("")}<td><b>${fmt(sum(rr))}</b></td><td>${n?fmt(sum(rr)/n):"–"}</td></tr>`}).join("")}</tbody></table></div>`}
 const n=ds.length,sel=(v,l)=>`<option value="${v}" ${rScope===v?"selected":""}>${esc(l)}</option>`;
-return `<div class="noprint"><h1>Reports</h1><p class="sub">Choose a cow or the whole farm, then print or save as PDF</p><div class="card" style="margin-bottom:16px"><div class="row"><div><label>Report for</label><select onchange="rScope=this.value;render()">${sel("farm","Whole farm")}${S.cows.map(c=>sel(c.id,c.name)).join("")}</select></div><div><label>Period</label><select onchange="rMode=this.value;if(rDate.length<10)rDate+='-01';render()">${[["daily","Daily"],["monthly","Monthly"],["all","Up to date (all records)"]].map(x=>`<option value="${x[0]}" ${rMode===x[0]?"selected":""}>${x[1]}</option>`).join("")}</select></div>${rMode==="all"?"":`<div><label>${mo?"Month":"Date"}</label><input type="${mo?"month":"date"}" value="${mo?rDate.slice(0,7):rDate}" onchange="rDate=this.value||today();render()"></div>`}</div><button class="btn" onclick="window.print()">🖨️ Print / Save as PDF</button></div></div>
+return `<div class="noprint"><h1>Reports</h1><p class="sub">Choose a cow or the whole farm, then print or save as PDF</p><div class="card" style="margin-bottom:16px"><div class="row"><div><label>Report for</label><select onchange="rScope=this.value;render()">${sel("farm","Whole farm")}${S.cows.map(c=>sel(c.id,c.name)).join("")}</select></div><div><label>Period</label><select onchange="rMode=this.value;if(rDate.length<10)rDate+='-01';render()">${[["daily","Daily"],["monthly","Monthly"],["all","Up to date (all records)"]].map(x=>`<option value="${x[0]}" ${rMode===x[0]?"selected":""}>${x[1]}</option>`).join("")}</select></div>${rMode==="all"?"":`<div><label>${mo?"Month":"Date"}</label><input type="${mo?"month":"date"}" value="${mo?rDate.slice(0,7):rDate}" onchange="rDate=this.value||today();render()"></div>`}</div><button class="btn" onclick="window.print()">🖨️ Print / Save as PDF</button> <button class="btn alt" style="margin-top:8px" onclick="repCsv()">⬇ Download Excel (CSV)</button> <button class="btn alt" style="margin-top:8px" onclick="repHtml()">⬇ Download report file</button></div></div>
 <div class="card"><div class="lh">${logo}<div><h2>${esc(f.name||"Your farm name")}</h2><small>${esc([f.addr,f.phone,f.email].filter(Boolean).join(" · ")||"Add address and contact details under Farm")}</small></div></div>
 <h3 style="margin:0;color:var(--dg)">${title}</h3><p class="sub">Generated ${new Date().toLocaleString()}</p>
 <div class="grid"><div class="card stat"><b>${fmt(T)} L</b><span>Total milk</span></div><div class="card stat"><b>${n}</b><span>Days recorded</span></div><div class="card stat"><b>${n?fmt(T/n):"–"} L</b><span>Average per recorded day</span></div></div>
 ${cowT}<h3>${cow?"Milk by day":"Farm milk by day"}</h3>${dayT}
 ${extra(cow,inD)}<p class="note">Based on entered records only. A dash (–) means nothing was recorded, not zero litres.</p></div>`}
-addEventListener("online",()=>{online=true;render();sync()});setTimeout(()=>{if(U&&U.sb)sync()},1500);addEventListener("offline",()=>{online=false;render()});
+addEventListener("online",()=>{online=true;render();sync()});setTimeout(()=>{if(U&&U.sb)sync()},1500);setTimeout(autoUpdate,2500);addEventListener("offline",()=>{online=false;render()});
 {const c=localStorage.getItem("gpd_cur"),u=users().find(x=>x.id===c);spl(60);if(u&&!u.bio)loadUser(u)}
 spl(80);render();spl(92);
 addEventListener("load",()=>{spl(100);setTimeout(()=>{var s=document.getElementById("splash");if(s){s.style.opacity=0;setTimeout(()=>s.remove(),400)}},250)});setTimeout(()=>{var s=document.getElementById("splash");if(s)s.remove()},7000);
