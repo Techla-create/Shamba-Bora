@@ -53,7 +53,7 @@ nav.open{transform:none;box-shadow:0 0 40px rgba(0,0,0,.3)}
 </div>
 <script src="config.js"></script>
 <script>
-spl(35);const APP_VERSION="1.3.1";const SESS=["Morning","Afternoon","Evening"];
+spl(35);const APP_VERSION="1.3.2";const SESS=["Morning","Afternoon","Evening"];
 const today=()=>new Date().toISOString().slice(0,10);
 let S={cows:[],milk:{},audit:[]},view="dash",msg=null,mDate=today(),mSess="Morning",online=navigator.onLine;
 let U=null,authMode="login";
@@ -228,12 +228,15 @@ async function doReset(){const a=document.getElementById("np").value,b=document.
 if(a.length<6)return aerr("The password needs 6 or more characters.");if(a!==b)return aerr("The two passwords do not match.");
 try{await api("/auth/v1/user",{m:"PUT",b:{password:a}});TK=null;localStorage.removeItem("gpd_tk");recov=null;authMode="login";pendMsg="Password changed. Go back to login and use your new password.";render()}
 catch(e){aerr(netErr(e)?"No connection. Try again with internet.":e.message)}}
-function forgotView(){document.getElementById("nav").innerHTML="";document.getElementById("main").innerHTML=`<div style="max-width:380px;margin:6vh auto"><div style="text-align:center;margin-bottom:16px">${logoBig}<h1>Forgot password</h1><p class="sub">We will email you a link to choose a new password</p></div><div id="am"></div><div class="card"><div style="margin-bottom:12px"><label>Your email</label><input id="re" type="email" autocomplete="off"></div><button class="btn" style="width:100%" onclick="doForgot()">Send reset link</button></div><p style="text-align:center"><a href="#" onclick="authMode='login';render();return false" style="color:var(--g);font-weight:600">Back to login</a></p></div>`}
-async function doForgot(){const email=document.getElementById("re").value.trim().toLowerCase();
-if(!/^\S+@\S+\.\S+$/.test(email))return aerr("Enter the email you registered with.");
-if(!navigator.onLine)return aerr("You need internet to request a reset link.");
-try{await api("/auth/v1/recover"+redirQ(),{m:"POST",b:{email},anon:1});document.getElementById("am").innerHTML='<div class="msg">If that email has an account, a reset link has been sent. Check your inbox and your spam folder.</div>'}
+var _fe=[];
+const maskEm=e=>{const p=String(e).split("@");return p[0].slice(0,2)+"***@"+(p[1]||"")};
+function forgotView(){document.getElementById("nav").innerHTML="";const us=users().filter(u=>u.sb&&u.email);_fe=us.map(u=>u.email);
+const list=us.map((u,i)=>`<button class="btn" style="width:100%;margin-bottom:10px" onclick="sendReset(_fe[${i}])">Send reset link to ${esc(maskEm(u.email))}</button>`).join("");
+document.getElementById("main").innerHTML=`<div style="max-width:380px;margin:6vh auto"><div style="text-align:center;margin-bottom:16px">${logoBig}<h1>Forgot password</h1><p class="sub">We email you a link to choose a new password</p></div><div id="am"></div>${us.length?`<div class="card">${list}<p class="note" style="margin:6px 0 0">The link goes to the email the account was registered with.</p><p style="text-align:center;margin:12px 0 0"><a href="#" onclick="document.getElementById('other').style.display='block';this.style.display='none';return false" style="color:var(--g);font-weight:600">Use a different email</a></p></div>`:""}<div class="card" id="other" style="${us.length?"display:none;margin-top:12px":""}"><div style="margin-bottom:12px"><label>Your email</label><input id="re" type="email" autocomplete="off"></div><button class="btn" style="width:100%" onclick="doForgot()">Send reset link</button></div><p style="text-align:center"><a href="#" onclick="authMode='login';render();return false" style="color:var(--g);font-weight:600">Back to login</a></p></div>`}
+async function sendReset(email){if(!navigator.onLine)return aerr("You need internet to request a reset link.");
+try{await api("/auth/v1/recover"+redirQ(),{m:"POST",b:{email:String(email).trim().toLowerCase()},anon:1});document.getElementById("am").innerHTML=`<div class="msg">If an account exists for ${esc(maskEm(email))}, a reset link has been sent. Check your inbox and your spam folder.</div>`}
 catch(e){aerr(netErr(e)?"No connection. Try again with internet.":/rate/i.test(e.message)?"Too many requests. Wait a few minutes and try again.":e.message)}}
+async function doForgot(){const email=document.getElementById("re").value.trim().toLowerCase();if(!/^\S+@\S+\.\S+$/.test(email))return aerr("Enter the email you registered with.");return sendReset(email)}
 const themeNow=()=>localStorage.getItem("gpd_theme")||"light";
 function setTheme(t){localStorage.setItem("gpd_theme",t);if(t==="auto")document.documentElement.removeAttribute("data-theme");else document.documentElement.setAttribute("data-theme",t);render()}
 const toCsv=rows=>"\ufeff"+rows.map(r=>r.map(c=>'"'+String(c==null?"":c).replace(/"/g,'""')+'"').join(",")).join("\r\n");
