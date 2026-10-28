@@ -36,7 +36,7 @@ svg text{fill:var(--tx);font-size:11px}
 .bar{display:none}.tag:empty{display:none}
 table{width:100%;border-collapse:collapse;font-size:.88rem;margin:10px 0}th,td{padding:7px 8px;border-bottom:1px solid var(--bd);text-align:right}th:first-child,td:first-child{text-align:left}th{background:var(--lg);color:var(--dg)}tfoot td{font-weight:700;border-top:2px solid var(--g)}.wrap{overflow-x:auto}
 .lh{border-bottom:3px solid var(--g);padding-bottom:10px;margin-bottom:14px;display:flex;gap:12px;align-items:center}.lh h2{margin:0;color:var(--dg)}.lh small{color:#6b7f6e;display:block}
-@media print{:root:root:root{--card:#fff;--bg:#fff;--tx:#000;--bd:#ccc;--dg:#14532D;--lg:#E8F5E9}nav,.noprint,.msg,.tb,#ov{display:none!important}main{padding:0;max-width:none}.card{border:0;padding:0}}
+@media print{:root:root:root{--card:#fff;--bg:#fff;--tx:#000;--bd:#ccc;--dg:#14532D;--lg:#E8F5E9}nav,.noprint,.msg,.tb,#ov,.dlg{display:none!important}main{padding:0;max-width:none}.card{border:0;padding:0}}
 .tb{display:none;position:sticky;top:0;z-index:20;background:var(--bg);padding:6px 0 10px;align-items:center;gap:12px}#ov{display:none}
 @media(max-width:720px){
 nav{position:fixed;top:0;left:0;bottom:0;right:auto;width:80%;max-width:300px;height:auto;flex-direction:column;border:0;border-right:1px solid var(--bd);padding:16px;padding-top:calc(16px + env(safe-area-inset-top,0px));transform:translateX(-105%);transition:transform .25s;z-index:40;overflow-y:auto}
@@ -44,6 +44,7 @@ nav.open{transform:none;box-shadow:0 0 40px rgba(0,0,0,.3)}
 #ov.open{display:block;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:35}
 .tb{display:flex}main{padding:12px 14px 40px}.bar{display:block}}
 #splash{position:fixed;inset:0;background:#fff;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;transition:opacity .35s}#splash img{width:200px;max-width:60%}#splash .pb{width:220px;max-width:70%;height:10px;background:#E8F5E9;border-radius:99px;overflow:hidden}#splash .pb i{display:block;height:100%;width:0;background:#228B22;border-radius:99px;transition:width .25s}#splash b{color:#14532D;font:600 .95rem system-ui,sans-serif}
+.dlg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px}.dbox{background:var(--card);color:var(--tx);border-radius:18px;padding:20px;max-width:340px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.3)}.dbox p{margin:0 0 16px;text-align:center;line-height:1.45}.dbt{display:flex;gap:10px}.dbt .btn{flex:1}.dbt .btn.danger{background:#b91c1c}
 </style></head><body>
 <div id="splash"><img src="logo.png" alt=""><div class="pb"><i id="spb"></i></div><b id="spt">0%</b></div>
 <script>var spl=function(p){var b=document.getElementById("spb"),t=document.getElementById("spt");if(b)b.style.width=p+"%";if(t)t.textContent=p+"%"};spl(10);</script>
@@ -53,7 +54,7 @@ nav.open{transform:none;box-shadow:0 0 40px rgba(0,0,0,.3)}
 </div>
 <script src="config.js"></script>
 <script>
-spl(35);const APP_VERSION="1.3.3";const SESS=["Morning","Afternoon","Evening"];
+spl(35);const APP_VERSION="1.3.4";const SESS=["Morning","Afternoon","Evening"];
 const today=()=>new Date().toISOString().slice(0,10);
 let S={cows:[],milk:{},audit:[]},view="dash",msg=null,mDate=today(),mSess="Morning",online=navigator.onLine;
 let U=null,authMode="login";
@@ -83,7 +84,7 @@ try{const j=JSON.parse(await f.text());if(j.app!=="gpd")throw 0;
 const key=await aesKey(pw,unb64(j.salt),["decrypt"]),p=JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(j.iv)},key,unb64(j.ct))));
 const us=users(),old=us.find(x=>x.id===p.user.id);
 if(us.some(x=>x.user===p.user.user&&x.id!==p.user.id))return aerr("Another account on this phone already uses that username.");
-if(old&&!confirm("This account is already on this phone. Replace it with the backup?"))return;
+if(old&&!(await uiConfirm("This account is already on this phone. Replace it with the backup?","Replace")))return;
 const u={...p.user,bio:old?old.bio:undefined};
 localStorage.setItem("gpd_users",JSON.stringify([...us.filter(x=>x.id!==u.id),u]));localStorage.setItem("gpd_"+u.id,JSON.stringify(p.data));
 authMode="login";msg={t:"Account restored."};loadUser(u);render()}
@@ -103,7 +104,7 @@ function secCard(){const bio=!!U.bio;return `<div class="card" style="margin-top
 <hr style="border:0;border-top:1px solid var(--bd);margin:16px 0">
 ${window.PublicKeyCredential?`<p style="margin:0 0 10px">Fingerprint / face unlock: <b>${bio?"On":"Off"}</b></p><button class="btn alt" onclick="${bio?"bioOff()":"bioOn()"}">${bio?"Turn off":"Turn on fingerprint unlock"}</button><p class="note">When on, the app asks for your fingerprint or face each time it is opened. Your password still works as a fallback.</p>`:`<p class="note">This browser does not support fingerprint unlock.</p>`}</div>`}
 function bkNote(){const l=S.lastBackup,d=l?Math.floor((Date.now()-new Date(l))/864e5):null;if(l&&d<2)return"";return `<div class="msg" style="background:#fef3c7;color:var(--warn);cursor:pointer" onclick="go('settings')">${l?"Last backup was "+d+" days ago":"No backup yet"}. Tap here to back up${U.email?" to "+esc(U.email):""}.</div>`}
-function setEmail(v){v=v.trim();if(v&&!/^\S+@\S+\.\S+$/.test(v)){alert("That email address does not look right.");return}U.email=v;saveUser()}
+function setEmail(v){v=v.trim();if(v&&!/^\S+@\S+\.\S+$/.test(v)){uiAlert("That email address does not look right.");return}U.email=v;saveUser()}
 const needBk=()=>!S.lastBackup||S.lastBackup.slice(0,10)!==today();
 const CFG=window.CFG||{},CLOUD=!!(CFG.url&&CFG.key&&!/YOURPROJECT|YOUR_/.test(CFG.url+CFG.key));
 let TK=null,pendMsg=null,syncing=false,syncErr="";
@@ -188,16 +189,16 @@ syncing=false;if(manual){msg=syncErr?{t:"Sync problem: "+syncErr,e:1}:{t:"Everyt
 function teamCard(){if(!U.sb)return"";return `<div class="card" style="margin-top:16px"><h3 style="margin-top:0;color:var(--dg)">Farm code and team</h3><p>Farm code: <b style="font-size:1.3rem;letter-spacing:2px">${esc(U.code)}</b><br><small>Give this code to your workers when they register.</small></p>${U.role==="owner"?`<button class="btn alt" onclick="loadTeam()">Show team</button><div id="team"></div>`:`<p class="note">Your role on this farm: worker.</p>`}</div>`}
 async function loadTeam(){const el=document.getElementById("team");try{await ensureTk();const l=await rpc("dairy_team",{p_farm:U.farmId});
 el.innerHTML=l.map(x=>`<div class="cow"><div class="n"><b>${esc(x.name||x.email)}</b><br><small>${esc(x.email)} · ${x.role} · ${x.status}${x.can_finance?" · can see money":""}${x.account!=="approved"?" · account "+x.account:""}</small></div>${x.role==="owner"?"":`<div>${x.status!=="active"?`<button class="btn" style="padding:8px 12px" onclick="setMember('${x.user_id}','active',false)">Approve</button>`:`<button class="btn alt" style="padding:8px 12px" onclick="setMember('${x.user_id}','active',${!x.can_finance})">${x.can_finance?"Hide money":"Show money"}</button>`} <button class="btn alt" style="padding:8px 12px" onclick="setMember('${x.user_id}','removed',false)">Remove</button></div>`}</div>`).join("")||'<p class="note">No team members yet.</p>'}catch(e){el.innerHTML=`<div class="msg err">${esc(e.message)}</div>`}}
-async function setMember(u,st,fin){try{await rpc("dairy_member_set",{p_farm:U.farmId,p_user:u,p_status:st,p_fin:fin});loadTeam()}catch(e){alert(e.message)}}
+async function setMember(u,st,fin){try{await rpc("dairy_member_set",{p_farm:U.farmId,p_user:u,p_status:st,p_fin:fin});loadTeam()}catch(e){uiAlert(e.message)}}
 let admList=[],admF="pending",admOn=false;
 async function admLoad(){try{await ensureTk();admList=await rpc("dairy_admin_list")}catch(e){msg={t:netErr(e)?"No internet. The administrator screen needs a connection.":e.message,e:1}}render()}
-async function admSet(id,s){try{await rpc("dairy_admin_set",{p_user:id,p_status:s});admLoad()}catch(e){alert(e.message)}}
+async function admSet(id,s){try{await rpc("dairy_admin_set",{p_user:id,p_status:s});admLoad()}catch(e){uiAlert(e.message)}}
 function adminPanel(){const a=admList.filter(x=>admF==="all"||x.status===admF);
 return `<h1>Administrator</h1><p class="sub">Approve or reject new accounts</p><div class="row"><select onchange="admF=this.value;render()">${["pending","approved","rejected","all"].map(s=>`<option ${s===admF?"selected":""}>${s}</option>`).join("")}</select><button class="btn alt" onclick="admLoad()">Refresh</button></div>${a.map(x=>`<div class="card" style="margin-bottom:10px"><b>${esc(x.name)}</b> <span class="tag ${x.status==="pending"?"miss":""}">${x.status}</span><br>${esc(x.email)}<br><small>${x.farms.map(f=>esc(f.name)+" ("+esc(f.code)+") · "+f.role+" · "+f.mstatus).join("<br>")}</small><div style="margin-top:8px">${x.status!=="approved"?`<button class="btn" style="padding:8px 14px" onclick="admSet('${x.id}','approved')">Approve</button> `:""}${x.status!=="rejected"?`<button class="btn alt" style="padding:8px 14px" onclick="admSet('${x.id}','rejected')">Reject</button>`:""}</div></div>`).join("")||'<p class="note">Nothing here.</p>'}`}
 const admin=()=>adminPanel();
 function adminView(){document.getElementById("nav").innerHTML="";document.getElementById("main").innerHTML=`<div style="max-width:720px;margin:3vh auto">${logoBig}${msg?`<div class="msg ${msg.e?"err":""}">${esc(msg.t)}</div>`:""}${adminPanel()}<p style="text-align:center"><button class="btn alt" onclick="admOut()">Log out</button></p></div>`}
 function admOut(){admOn=false;msg=null;localStorage.removeItem("gpd_tk");TK=null;authMode="login";render()}
-function logoutAsk(){if(confirm("Log out of Shamba Bora? You can log back in with your password."))logout()}
+function logoutAsk(){uiConfirm("Log out of Shamba Bora? You can log back in with your password.","Log out").then(ok=>{if(ok)logout()})}
 function menu(o){const n=document.getElementById("nav"),v=document.getElementById("ov");if(n)n.classList.toggle("open",!!o);if(v)v.classList.toggle("open",!!o)}
 function tbHtml(){const T={dash:"Home",milk:"Record milk",cows:"Cows",rec:"Records",reports:"Reports",settings:"Farm",admin:"Administrator"};return `<div class="tb"><button class="btn alt" style="padding:8px 14px;font-size:1.3rem;line-height:1" onclick="menu(1)" aria-label="Menu">☰</button><b style="color:var(--dg);font-size:1.15rem">${T[view]||"Shamba Bora"}</b></div>`}
 function admLogin(){document.getElementById("nav").innerHTML="";document.getElementById("main").innerHTML=`<div style="max-width:380px;margin:6vh auto"><div style="text-align:center;margin-bottom:16px">${logoBig}<h1>Administrator login</h1><p class="sub">For the Shamba Bora administrator only</p></div><div id="am"></div><div class="card"><div style="margin-bottom:12px"><label>Email</label><input id="re" type="email" autocomplete="off"></div><div style="margin-bottom:12px"><label>Password</label><input id="rp" type="password" autocomplete="off"></div><button class="btn" style="width:100%" onclick="cloudAdmin()">Log in as administrator</button></div><p style="text-align:center"><a href="#" onclick="authMode='login';render();return false" style="color:var(--g);font-weight:600">Back to normal login</a></p></div>`}
@@ -245,7 +246,7 @@ if(isApp()){const cp=window.Capacitor.Plugins,w=await cp.Filesystem.writeFile({p
 const file=new File([text],name,{type:mime});
 if(/iPhone|iPad|iPod/.test(navigator.userAgent)&&navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:name});return}
 const a=document.createElement("a");a.href=URL.createObjectURL(file);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},3000)}
-catch(e){if(!(e&&(e.name==="AbortError"||/cancel/i.test(e.message||""))))alert("Could not save the file: "+((e&&e.message)||e))}}
+catch(e){if(!(e&&(e.name==="AbortError"||/cancel/i.test(e.message||""))))uiAlert("Could not save the file: "+((e&&e.message)||e))}}
 function repCsv(){const el=document.getElementById("sheet");if(!el)return;const f=el.querySelector(".lh h2"),t=el.querySelector("h3"),rows=[[f?f.textContent:"Shamba Bora"],[t?t.textContent:"Report"],[]];
 el.querySelectorAll(".stat").forEach(c=>rows.push([c.querySelector("span").textContent,c.querySelector("b").textContent]));rows.push([]);
 el.querySelectorAll("table").forEach(tb=>{const w=tb.closest(".wrap")||tb,p=w.previousElementSibling;if(p&&p.tagName==="H3")rows.push([p.textContent]);
@@ -255,11 +256,17 @@ async function logoData(){try{const b=await(await fetch("logo.png")).blob();retu
 async function repHtml(){const el=document.getElementById("sheet");if(!el)return;const css=[...document.querySelectorAll("style")].map(x=>x.textContent).join("");
 let html=`<!DOCTYPE html><html data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Shamba Bora report</title><style>${css} nav,.tb,#ov,#splash{display:none}body{background:#fff;padding:16px}</style></head><body>${el.outerHTML}<p class="noprint" style="text-align:center"><button onclick="window.print()" style="padding:12px 20px;font-size:1rem">Print / Save as PDF</button></p></body></html>`;
 html=html.split('src="logo.png"').join('src="'+await logoData()+'"');saveFile("shamba-bora-report-"+today()+".html",html,"text/html")}
-function dlRec(){const M=MODS[mod],a=(S.rec[mod]||[]).slice().sort((x,y)=>x.at.localeCompare(y.at));if(!a.length){alert("There are no records to download yet.");return}
+function dlRec(){const M=MODS[mod],a=(S.rec[mod]||[]).slice().sort((x,y)=>x.at.localeCompare(y.at));if(!a.length){uiAlert("There are no records to download yet.");return}
 const head=M.f.map(f=>f[1]);if(mod==="sale")head.push("Total","Balance");
 const rows=[[(S.farm&&S.farm.name)||"Shamba Bora"],[M.t+" records"],[],head,...a.map(r=>{const v=M.f.map(f=>f[2]==="cow"||f[2]==="cow0"?nmOf(r[f[0]]):r[f[0]]);if(mod==="sale"){const t=r.litres*r.price;v.push(t,t-(r.paid||0))}return v})];
 saveFile("shamba-bora-"+mod+"-"+today()+".csv",toCsv(rows),"text/csv")}
 const themeCard=()=>{const t=themeNow(),b=(k,l)=>`<button class="btn ${t===k?"":"alt"}" style="flex:1;padding:12px 6px" onclick="setTheme('${k}')">${l}</button>`;return `<div class="card" style="margin-top:16px"><h3 style="margin-top:0;color:var(--dg)">Appearance</h3><div style="display:flex;gap:8px">${b("light","☀️ Light")}${b("dark","🌙 Dark")}${b("auto","📱 Automatic")}</div><p class="note">Automatic follows your phone's own light or dark setting. Your choice is remembered on this phone.</p></div>`};
+function uiDialog(msg,o){o=o||{};return new Promise(res=>{const ov=document.createElement("div");ov.className="dlg";
+ov.innerHTML=`<div class="dbox" role="dialog" aria-modal="true"><img src="logo.png" alt="" style="height:46px;width:auto;display:block;margin:0 auto 10px"><p>${esc(msg).replace(/\n/g,"<br>")}</p><div class="dbt">${o.cancel?`<button class="btn alt" id="dc">${esc(o.cancel)}</button>`:""}<button class="btn${o.danger?" danger":""}" id="dk">${esc(o.ok||"OK")}</button></div></div>`;
+const k=e=>{if(e.key==="Escape")done(false)},done=v=>{document.removeEventListener("keydown",k);ov.remove();res(v)};
+document.addEventListener("keydown",k);document.body.appendChild(ov);ov.querySelector("#dk").onclick=()=>done(true);
+const c=ov.querySelector("#dc");if(c)c.onclick=()=>done(false);ov.addEventListener("click",e=>{if(e.target===ov&&o.cancel)done(false)});ov.querySelector("#dk").focus()})}
+const uiAlert=m=>uiDialog(m),uiConfirm=(m,ok,danger)=>uiDialog(m,{ok:ok||"Yes",cancel:"Cancel",danger:!!danger});
 async function doReg(){const g=i=>(document.getElementById(i)||{value:""}).value.trim(),p=document.getElementById("rp").value,un=g("ru").toLowerCase();
 if(!g("rf")||!g("rn")||!un||p.length<6)return aerr("Fill in every field. The password needs 6 or more characters.");
 if(g("re")&&!/^\S+@\S+\.\S+$/.test(g("re")))return aerr("That email address does not look right.");
@@ -323,10 +330,10 @@ const items=a.slice().sort((x,y)=>y.at.localeCompare(x.at)).map(r=>`<div class="
 return `<h1>${M.t}</h1><p class="sub">Farm records</p>${tabs}<div class="card" style="margin-bottom:16px"><div class="row">${M.f.map(fld).join("")}</div><button class="btn" onclick="addRec()">Save record</button></div><div class="card">${tot()}<button class="btn alt" style="margin-bottom:10px" onclick="dlRec()">⬇ Download ${M.t} (Excel/CSV)</button>${items}</div>`}
 function addRec(){const M=MODS[mod],r={id:uid(),at:new Date().toISOString()};
 for(const f of M.f){const v=document.getElementById("f_"+f[0]).value.trim();r[f[0]]=f[2]==="number"&&v!==""?parseFloat(v):v;
-if(M.r.includes(f[0])&&v===""){alert("Please fill in: "+f[1]);return}
-if(f[2]==="number"&&v!==""&&!(parseFloat(v)>=0)){alert(f[1]+" must be zero or more.");return}}
+if(M.r.includes(f[0])&&v===""){uiAlert("Please fill in: "+f[1]);return}
+if(f[2]==="number"&&v!==""&&!(parseFloat(v)>=0)){uiAlert(f[1]+" must be zero or more.");return}}
 (S.rec[mod]=S.rec[mod]||[]).push(r);save();msg={t:"Record saved."};render()}
-function delRec(id){if(!confirm("Delete this record?"))return;S.rec[mod]=S.rec[mod].filter(r=>r.id!==id);save();render()}
+async function delRec(id){if(!(await uiConfirm("Delete this record?","Delete",true)))return;S.rec[mod]=S.rec[mod].filter(r=>r.id!==id);save();render()}
 const wd=id=>(S.rec.health||[]).some(r=>r.cow===id&&r.milkwd&&r.milkwd>=today())?' <span class="tag miss">Do not sell milk</span>':"";
 function finData(p){const A=m=>(S.rec[m]||[]).filter(r=>p(r.date||r.noticed||"")),sm=(a,k)=>a.reduce((x,r)=>x+(r[k]||0),0),sl=A("sale");
 return{s:sl.reduce((x,r)=>x+r.litres*r.price,0),pd:sm(sl,"paid"),e:sm(A("exp"),"amount")+sm(A("feed"),"cost")+sm(A("health"),"cost")+sm(A("vacc"),"cost"),prod:sum(recs(r=>p(r.date))),sold:sm(sl,"litres")}}
@@ -359,8 +366,8 @@ return `<p><a onclick="pid=null;render()" style="cursor:pointer;color:var(--g);f
 <div class="row">${inp("name","Name")}${inp("tag","Ear tag / ID")}${inp("breed","Breed")}${inp("dob","Date of birth","date")}${inp("acq","Date acquired","date")}${inp("src","Source of acquisition")}${inp("lact","Lactation number","number")}${inp("notes","Notes")}</div><button class="btn" onclick="saveCow()">Save changes</button> <button class="btn alt" onclick="repFor('${c.id}')">View report</button></div>
 <div class="card">${hist}</div>`}
 function saveCow(){const c=S.cows.find(x=>x.id===pid),g=k=>document.getElementById("p_"+k).value.trim(),nm=g("name"),tag=g("tag");
-if(!nm){alert("Name is required.");return}
-if(S.cows.some(x=>x.id!==c.id&&(x.name.toLowerCase()===nm.toLowerCase()||(tag&&x.tag.toLowerCase()===tag.toLowerCase())))){alert("Another cow already has that name or tag.");return}
+if(!nm){uiAlert("Name is required.");return}
+if(S.cows.some(x=>x.id!==c.id&&(x.name.toLowerCase()===nm.toLowerCase()||(tag&&x.tag.toLowerCase()===tag.toLowerCase())))){uiAlert("Another cow already has that name or tag.");return}
 Object.assign(c,{name:nm,tag,breed:g("breed"),dob:g("dob"),acq:g("acq"),src:g("src"),lact:g("lact"),notes:g("notes")});save();msg={t:"Cow details saved."};render()}
 function cowPhoto(i){const f=i.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,240/Math.max(im.width,im.height)),cv=document.createElement("canvas");cv.width=im.width*k;cv.height=im.height*k;cv.getContext("2d").drawImage(im,0,0,cv.width,cv.height);S.cows.find(x=>x.id===pid).photo=cv.toDataURL("image/jpeg",.7);save();render()};im.src=rd.result};rd.readAsDataURL(f)}
 const openCow=id=>{pid=id;render()},repFor=id=>{rScope=id;rMode="all";view="reports";render()};
@@ -384,7 +391,7 @@ const v=parseFloat(i.value);if(isNaN(v)||v<0)return;const k=i.dataset.cow+"|"+mD
 if(old&&old.litres===v)return;
 if(old)S.audit.push({key:k,from:old.litres,to:v,at:new Date().toISOString()});
 S.milk[k]={cow:i.dataset.cow,date:mDate,session:mSess,litres:v,by:"Me",at:new Date().toISOString(),status:"Saved Offline"};n++});
-save();msg=n?{t:n+" entr"+(n==1?"y":"ies")+" saved on this device."}:{t:"Nothing new to save.",e:1};render();if(n&&needBk()&&S.bkAsked!==today()){S.bkAsked=today();save();setTimeout(()=>{if(confirm("Milk saved. Back up today’s records to your email now?"))go("settings")},400)}}
+save();msg=n?{t:n+" entr"+(n==1?"y":"ies")+" saved on this device."}:{t:"Nothing new to save.",e:1};render();if(n&&needBk()&&S.bkAsked!==today()){S.bkAsked=today();save();setTimeout(()=>{uiConfirm("Milk saved. Back up today’s records to your email now?","Back up now").then(ok=>{if(ok)go("settings")})},400)}}
 function settings(){const f=S.farm,i=(id,l,v)=>`<div><label>${l}</label><input id="${id}" value="${esc(v)}"></div>`;
 return `<h1>Farm details</h1><p class="sub">Shown on the letterhead of every report</p><div class="card"><div class="row">${i("fn","Farm name",f.name)}${i("fa","Address / location",f.addr)}${i("fp","Phone",f.phone)}${i("fe","Email",f.email)}</div><button class="btn" onclick="saveFarm()">Save farm details</button> <button class="btn alt" onclick="logout()">Log out</button></div>${teamCard()}${secCard()}${themeCard()}<p class="note" style="text-align:center">Shamba Bora version ${APP_VERSION}</p>`}
 function saveFarm(){const g=i=>document.getElementById(i).value.trim();S.farm={name:g("fn"),addr:g("fa"),phone:g("fp"),email:g("fe")};save();msg={t:"Farm details saved."};render()}
